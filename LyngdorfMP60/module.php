@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
+require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
 class LyngdorfMP60 extends IPSModuleStrict
 {
     use SmartLog_Trait;
+    use DeviceAvailability_Trait;
     public function Create(): void
     {
         parent::Create();
@@ -63,6 +65,8 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         $this->RegisterVariableString('AudioTypeIn', '📥 Audio Type In', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 7);
         $this->RegisterVariableString('AudioTypeOut', '📤 Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 8);
+
+        $this->DA_RegisterAvailability(900, 1);
     }
 
     public function ApplyChanges(): void
@@ -76,6 +80,8 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         // Regelmäßiges Polling (alle 30 Sekunden) als Fallback
         $this->RegisterTimer('UpdatePolling', 30000, 'LYNG_UpdateData($_IPS[\'TARGET\']);');
+
+        $this->DA_ApplyPresentation();
     }
 
     protected function Log(string $text): void
@@ -96,6 +102,11 @@ class LyngdorfMP60 extends IPSModuleStrict
 
     public function RequestAction(string $Ident, mixed $Value): void
     {
+        if ($Ident === 'DA_Watchdog') {
+            $this->DA_HandleWatchdog();
+            return;
+        }
+        
         switch ($Ident) {
             case 'Power':
                 if ($Value) {
@@ -136,6 +147,7 @@ class LyngdorfMP60 extends IPSModuleStrict
 
     public function ReceiveData(string $JSONString): string
     {
+        $this->DA_SetAvailable(true);
         $data = json_decode($JSONString);
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->SLog('ERROR', 'Ungültiges JSON empfangen', json_last_error_msg());
@@ -359,9 +371,21 @@ class LyngdorfMP60 extends IPSModuleStrict
             "type": "Button",
             "label": "Werte manuell vom Receiver aktualisieren",
             "onClick": "LYNG_UpdateData($id);"
+        },
+        {
+            "type": "Button",
+            "label": "TestConnection",
+            "onClick": "echo 'OK';"
         }
     ],
-    "status": []
+    "status": [
+        { "code": 102, "icon": "active", "caption": "Verbunden" },
+        { "code": 104, "icon": "inactive", "caption": "Host nicht konfiguriert" },
+        { "code": 201, "icon": "inactive", "caption": "Gerät antwortet nicht" },
+        { "code": 202, "icon": "inactive", "caption": "Verbindungsfehler" },
+        { "code": 203, "icon": "inactive", "caption": "Timeout" },
+        { "code": 204, "icon": "inactive", "caption": "Offline" }
+    ]
 }
 EOT;
     }

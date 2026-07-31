@@ -1,9 +1,11 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
 class SonyBeamer extends IPSModuleStrict
 {
+    use DeviceAvailability_Trait;
 
     private static array $inputMap = [
         0 => 'hdmi1',
@@ -39,7 +41,7 @@ class SonyBeamer extends IPSModuleStrict
         $this->RegisterTimer('UpdateTimer', 0, 'SONY_UpdateStatus($_IPS[\'TARGET\']);');
 
         // Variablen registrieren
-        $this->RegisterVariableBoolean('Power', '📺 Status', [
+        $this->RegisterVariableBoolean('Power', 'ðŸ“º Status', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SWITCH,
             'ICON'        => 'Power'
         ], 10);
@@ -55,26 +57,26 @@ class SonyBeamer extends IPSModuleStrict
             $this->UnregisterVariable('PictureMode');
         }
 
-        $this->RegisterVariableInteger('Input', '🔌 Eingang', [
+        $this->RegisterVariableInteger('Input', 'ðŸ”Œ Eingang', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'PROFILE'      => 'Sony.Input'
         ], 20);
         IPS_SetIcon($this->GetIDForIdent('Input'), 'Plug');
         $this->EnableAction('Input');
 
-        $this->RegisterVariableInteger('PictureMode', '🖼 Bildmodus', [
+        $this->RegisterVariableInteger('PictureMode', 'ðŸ–¼ Bildmodus', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'PROFILE'      => 'Sony.PictureMode'
         ], 30);
         IPS_SetIcon($this->GetIDForIdent('PictureMode'), 'TV');
         $this->EnableAction('PictureMode');
 
-        $this->RegisterVariableInteger('OperationTime', '⏱ Betriebsstunden', [
+        $this->RegisterVariableInteger('OperationTime', 'â± Betriebsstunden', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'ICON'=> 'Clock',
             'SUFFIX'=> 'h'
         ], 40);
-        $this->RegisterVariableInteger('LightSourceTime', '💡 Lampenstunden', [
+        $this->RegisterVariableInteger('LightSourceTime', 'ðŸ’¡ Lampenstunden', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'ICON'=> 'Bulb',
             'SUFFIX'=> 'h'
@@ -83,10 +85,17 @@ class SonyBeamer extends IPSModuleStrict
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'ICON'=> 'Warning'
         ], 60);
+
+        $this->DA_RegisterAvailability(900, 1);
     }
 
     public function ApplyChanges(): void{
         parent::ApplyChanges();
+
+        if (empty($this->ReadPropertyString('Host'))) {
+            $this->SetStatus(104);
+            return;
+        }
 
         $interval = $this->ReadPropertyInteger('UpdateInterval');
         if ($interval < 5) $interval = 5;
@@ -140,6 +149,7 @@ class SonyBeamer extends IPSModuleStrict
         ]);
 
         $this->UpdateVisibility(!$this->GetValue('Power'));
+        $this->DA_ApplyPresentation();
     }
 
     protected function Log(string $Message): void
@@ -148,6 +158,10 @@ class SonyBeamer extends IPSModuleStrict
     }
 
     public function RequestAction(string $Ident, mixed $Value): void{
+        if ($Ident === 'DA_Watchdog') {
+            $this->DA_HandleWatchdog();
+            return;
+        }
         switch ($Ident) {
             case 'Power':
                 if ($Value) {
@@ -195,15 +209,15 @@ class SonyBeamer extends IPSModuleStrict
         $fp = @fsockopen($host, $port, $errno, $errstr, 2);
         if (!$fp) {
             $this->SendDebug("Log", "Verbindung fehlgeschlagen: $errstr ($errno)", 0);
-            return;
+            $this->DA_SetAvailable(false, 'Verbindungsfehler');return;
         }
         
         stream_set_timeout($fp, 2);
         
-        // Begrüßung abwarten
+        // BegrÃ¼ÃŸung abwarten
         $greeting = fread($fp, 128);
         if (!empty(trim((string)$greeting))) {
-            $this->SendDebug("Log", "Begrüßung: ". trim((string)$greeting), 0);
+            $this->SendDebug("Log", "BegrÃ¼ÃŸung: ". trim((string)$greeting), 0);
         }
         
         $commands = [
@@ -222,6 +236,7 @@ class SonyBeamer extends IPSModuleStrict
             $response = fread($fp, 1024);
             $response = trim((string)$response);
             if (!empty($response)) {
+                $this->DA_SetAvailable(true);
                 $this->SendDebug("Receive", $response, 0);
                 
                 $lines = explode("\n", str_replace("\r", "", $response));
@@ -251,17 +266,18 @@ class SonyBeamer extends IPSModuleStrict
         $fp = @fsockopen($host, $port, $errno, $errstr, 2);
         if (!$fp) {
             $this->SendDebug("Log", "Verbindung fehlgeschlagen: $errstr ($errno)", 0);
-            return;
+            $this->DA_SetAvailable(false, 'Verbindungsfehler');return;
         }
         
         stream_set_timeout($fp, 2);
-        fread($fp, 128); // Begrüßung ignorieren
+        fread($fp, 128); // BegrÃ¼ÃŸung ignorieren
         
         $this->SendDebug("Transmit", $cmd, 0);
         fwrite($fp, $cmd . "\r\n");
         
         $response = trim((string)fread($fp, 1024));
         if (!empty($response)) {
+            $this->DA_SetAvailable(true);
             $this->SendDebug("Receive", $response, 0);
             $lines = explode("\n", str_replace("\r", "", $response));
             foreach ($lines as $line) {
@@ -283,7 +299,7 @@ class SonyBeamer extends IPSModuleStrict
         }
 
         if (in_array($cleanLine, ['err_cmd', 'err_inactive'])) {
-            $this->SendDebug("ParseError", "Beamer meldet Fehler / Ablehnung: ". $cleanLine . "(Mögliche Ursache: Beamer ist im Standby oder Befehl ungültig)", 0);
+            $this->SendDebug("ParseError", "Beamer meldet Fehler / Ablehnung: ". $cleanLine . "(MÃ¶gliche Ursache: Beamer ist im Standby oder Befehl ungÃ¼ltig)", 0);
             return;
         }
         
@@ -370,7 +386,7 @@ class SonyBeamer extends IPSModuleStrict
     "elements": [
         {
             "type": "Label",
-            "label": "Hier stellst du die Netzwerkverbindung zu deinem Sony Beamer ein. Trage die IP-Adresse und den Port deines Geräts ein."
+            "label": "Hier stellst du die Netzwerkverbindung zu deinem Sony Beamer ein. Trage die IP-Adresse und den Port deines GerÃ¤ts ein."
         },
         {
             "type": "RowLayout",
@@ -402,9 +418,23 @@ class SonyBeamer extends IPSModuleStrict
             "type": "Button",
             "label": "Status jetzt aktualisieren",
             "onClick": "SONY_UpdateStatus($id);"
+        },
+        {
+            "type": "Button",
+            "label": "TestConnection",
+            "onClick": "SONY_UpdateStatus($id);"
         }
+    ],
+    "status": [
+        { "code": 102, "icon": "active", "caption": "Verbunden" },
+        { "code": 104, "icon": "inactive", "caption": "Host nicht konfiguriert" },
+        { "code": 201, "icon": "inactive", "caption": "GerÃ¤t antwortet nicht" },
+        { "code": 202, "icon": "inactive", "caption": "Verbindungsfehler" },
+        { "code": 203, "icon": "inactive", "caption": "Timeout" },
+        { "code": 204, "icon": "inactive", "caption": "Offline" }
     ]
 }
 EOT;
     }
 }
+

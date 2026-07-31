@@ -1,4 +1,4 @@
-{
+﻿{
     "elements": [
         {
             "type": "List",
@@ -51,6 +51,19 @@
         {
             "type": "TestCenter",
             "environment": "OSC"
+        },
+        {
+            "type": "Button",
+            "label": "TestConnection",
+            "onClick": "echo 'OK';"
         }
+    ],
+    "status": [
+        { "code": 102, "icon": "active", "caption": "Verbunden" },
+        { "code": 104, "icon": "inactive", "caption": "Host nicht konfiguriert" },
+        { "code": 201, "icon": "inactive", "caption": "Gerät antwortet nicht" },
+        { "code": 202, "icon": "inactive", "caption": "Verbindungsfehler" },
+        { "code": 203, "icon": "inactive", "caption": "Timeout" },
+        { "code": 204, "icon": "inactive", "caption": "Offline" }
     ]
 }

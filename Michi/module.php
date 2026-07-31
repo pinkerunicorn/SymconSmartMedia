@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
+require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
 class Michi extends IPSModuleStrict
 {
     use SmartLog_Trait;
+    use DeviceAvailability_Trait;
 
     public function Create(): void{
         parent::Create();
@@ -56,10 +58,17 @@ class Michi extends IPSModuleStrict
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'ICON' => 'Network'
         ], 60);
+
+        $this->DA_RegisterAvailability(900, 1);
     }
 
     public function ApplyChanges(): void{
         parent::ApplyChanges();
+
+        if (empty($this->ReadPropertyString('Host'))) {
+            $this->SetStatus(104);
+            return;
+        }
 
         // Timer setzen
         $interval = $this->ReadPropertyInteger('UpdateInterval');
@@ -71,9 +80,15 @@ class Michi extends IPSModuleStrict
 
         // Initiale Sichtbarkeit der Variablen setzen
         $this->UpdatePowerState($this->GetValue('Power'));
+
+        $this->DA_ApplyPresentation();
     }
 
     public function RequestAction(string $Ident, mixed $Value): void{
+        if ($Ident === 'DA_Watchdog') {
+            $this->DA_HandleWatchdog();
+            return;
+        }
         switch ($Ident) {
             case 'Power':
                 if ($Value) {
@@ -110,6 +125,7 @@ class Michi extends IPSModuleStrict
         $fp = @fsockopen($host, $port, $errno, $errstr, 2);
         if (!$fp) {
             $this->SendDebug("Log", "Verbindung fehlgeschlagen: $errstr ($errno)", 0);
+            $this->DA_SetAvailable(false, 'Verbindungsfehler');
             
             // Michi ist vermutlich im Standby oder stromlos
             if ($this->GetValue('Power')) {
@@ -144,6 +160,7 @@ class Michi extends IPSModuleStrict
         $fp = @fsockopen($host, $port, $errno, $errstr, 2);
         if (!$fp) {
             $this->SendDebug("Log", "Verbindung fehlgeschlagen: $errstr ($errno)", 0);
+            $this->DA_SetAvailable(false, 'Verbindungsfehler');
             return;
         }
         
@@ -171,6 +188,7 @@ class Michi extends IPSModuleStrict
         }
         
         if (!empty($response)) {
+            $this->DA_SetAvailable(true);
             $this->SendDebug("Receive", $response, 0);
             $parts = explode('$', $response);
             foreach ($parts as $part) {
@@ -299,7 +317,20 @@ class Michi extends IPSModuleStrict
             "type": "Button",
             "label": "Alle Werte aktualisieren",
             "onClick": "MICHI_RequestStatus($id);"
+        },
+        {
+            "type": "Button",
+            "label": "TestConnection",
+            "onClick": "MICHI_RequestStatus($id);"
         }
+    ],
+    "status": [
+        { "code": 102, "icon": "active", "caption": "Verbunden" },
+        { "code": 104, "icon": "inactive", "caption": "Host nicht konfiguriert" },
+        { "code": 201, "icon": "inactive", "caption": "Gerät antwortet nicht" },
+        { "code": 202, "icon": "inactive", "caption": "Verbindungsfehler" },
+        { "code": 203, "icon": "inactive", "caption": "Timeout" },
+        { "code": 204, "icon": "inactive", "caption": "Offline" }
     ]
 }
 EOT;

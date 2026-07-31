@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
+require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
 class RoonZone extends IPSModuleStrict
 {
     use SmartLog_Trait;
+    use DeviceAvailability_Trait;
     private const TRANSPORT_COMMANDS = [
         0 => 'previous',
         1 => 'stop',
@@ -42,6 +44,8 @@ class RoonZone extends IPSModuleStrict
         // Aktionen für die Bedienung freigeben
         $this->EnableAction('State');
         $this->EnableAction('Volume');
+
+        $this->DA_RegisterAvailability(900, 1);
     }
 
     public function ApplyChanges(): void
@@ -70,10 +74,13 @@ class RoonZone extends IPSModuleStrict
             IPS_SetVariableProfileAssociation('Roon.State', 4, 'Next', '', -1);
         }
         IPS_SetVariableCustomProfile($this->GetIDForIdent('State'), 'Roon.State');
+
+        $this->DA_ApplyPresentation();
     }
 
     public function ReceiveData(string $JSONString): string
     {
+        $this->DA_SetAvailable(true);
         try {
             $data = json_decode($JSONString, true);
             if (!is_array($data)) return 'NOK';
@@ -133,6 +140,10 @@ class RoonZone extends IPSModuleStrict
 
     public function RequestAction(string $Ident, mixed $Value): void
     {
+        if ($Ident === 'DA_Watchdog') {
+            $this->DA_HandleWatchdog();
+            return;
+        }
         switch ($Ident) {
             case 'State':
                 if (isset(self::TRANSPORT_COMMANDS[$Value])) {
@@ -218,11 +229,16 @@ class RoonZone extends IPSModuleStrict
         ]}
     ],
     "actions": [
-        {"type": "Button", "label": "Play / Pause umschalten", "onClick": "ROON_TogglePlayPause($id);"}
+        {"type": "Button", "label": "Play / Pause umschalten", "onClick": "ROON_TogglePlayPause($id);"},
+        {"type": "Button", "label": "TestConnection", "onClick": "echo 'OK';"}
     ],
     "status": [
         {"code": 102, "icon": "active",   "caption": "Zone ist konfiguriert."},
-        {"code": 104, "icon": "inactive", "caption": "Kein Zonenname konfiguriert."}
+        {"code": 104, "icon": "inactive", "caption": "Kein Zonenname konfiguriert."},
+        { "code": 201, "icon": "inactive", "caption": "Gerät antwortet nicht" },
+        { "code": 202, "icon": "inactive", "caption": "Verbindungsfehler" },
+        { "code": 203, "icon": "inactive", "caption": "Timeout" },
+        { "code": 204, "icon": "inactive", "caption": "Offline" }
     ]
 }
 EOT;

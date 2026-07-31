@@ -1,12 +1,14 @@
-<?php
+﻿<?php
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
+require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
 
 class ChamSysQuickQ extends IPSModuleStrict
 {
     use SmartLog_Trait;
+    use DeviceAvailability_Trait;
 
     public function Create(): void
     {
@@ -15,6 +17,8 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Properties
         $this->RegisterPropertyString('Playbacks', '[]');
         $this->RegisterPropertyString('Heads', '[]');
+        
+        $this->DA_RegisterAvailability(900, 1);
 
         // Profile anlegen
         $this->CreateProfile('CQQ.Intensity', 2, '%', 0, 100, 1, 0, 'Sun');
@@ -86,10 +90,17 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $this->EnableAction($ident);
             }
         }
+        
+        $this->DA_ApplyPresentation();
     }
 
     public function RequestAction($Ident, $Value): void
     {
+        if ($Ident === 'DA_Watchdog') {
+            $this->DA_HandleWatchdog();
+            return;
+        }
+
         if ($Ident === 'MasterIntensity') {
             $this->SetValue($Ident, $Value);
             $this->SendOSCFloat('/grand/fader', max(0.0, min(1.0, $Value / 100.0)));
@@ -158,6 +169,8 @@ class ChamSysQuickQ extends IPSModuleStrict
 
     public function ReceiveData($JSONString): string
     {
+        $this->DA_SetAvailable(true);
+        
         $data = json_decode($JSONString);
         $buffer = utf8_decode($data->Buffer);
         
