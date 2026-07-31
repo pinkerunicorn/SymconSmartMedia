@@ -11,9 +11,6 @@ class ChamSysQuickQ extends IPSModuleStrict
     public function Create(): void
     {
         parent::Create();
-        
-        // Erzwinge UDP Socket als Parent
-        $this->RequireParent('{82347F20-F541-41E1-AC5B-A636FD3AE2D8}');
 
         // Properties
         $this->RegisterPropertyString('Playbacks', '[]');
@@ -31,6 +28,18 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Master Variable
         $this->RegisterVariableFloat('MasterIntensity', 'Master Fader', '', 0);
         $this->EnableAction('MasterIntensity');
+    }
+
+    public function GetCompatibleParents(): string
+    {
+        return json_encode([
+            'type' => 'require',
+            'modules' => [
+                [
+                    'moduleID' => '{82347F20-F541-41E1-AC5B-A636FD3AE2D8}'
+                ]
+            ]
+        ]);
     }
 
     public function ApplyChanges(): void
