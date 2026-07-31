@@ -18,7 +18,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->RegisterPropertyString('Playbacks', '[]');
         $this->RegisterPropertyString('Heads', '[]');
         
-        $this->DA_RegisterAvailability(900, 1);
+        $this->DA_RegisterAvailability(900);
 
         // Profile anlegen
         $this->CreateProfile('CQQ.Intensity', 2, '%', 0, 100, 1, 0, 'Sun');
@@ -220,5 +220,48 @@ class ChamSysQuickQ extends IPSModuleStrict
         IPS_SetVariableProfileValues($Name, $MinValue, $MaxValue, $StepSize);
         IPS_SetVariableProfileDigits($Name, $Digits);
         IPS_SetVariableProfileIcon($Name, $Icon);
+    }
+
+    public function GetConfigurationForm(): string
+    {
+        return json_encode([
+            'elements' => [
+                [
+                    'type'    => 'Label',
+                    'caption' => 'ChamSys QuickQ OSC-Steuerung. Verbindung über UDP I/O Instanz als Parent.'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Playbacks (JSON-Array mit ID und Name):'
+                ],
+                [
+                    'type' => 'ValidationTextBox',
+                    'name' => 'Playbacks',
+                    'caption' => 'Playbacks (JSON)'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Heads (JSON-Array mit ID und Name):'
+                ],
+                [
+                    'type' => 'ValidationTextBox',
+                    'name' => 'Heads',
+                    'caption' => 'Heads (JSON)'
+                ]
+            ],
+            'actions' => [
+                [
+                    'type'    => 'Button',
+                    'caption' => 'Einstellungen übernehmen',
+                    'onClick' => 'IPS_ApplyChanges($id);'
+                ]
+            ],
+            'status' => [
+                ['code' => 102, 'icon' => 'active',   'caption' => 'ChamSys QuickQ verbunden'],
+                ['code' => 104, 'icon' => 'inactive', 'caption' => 'Nicht konfiguriert'],
+                ['code' => 201, 'icon' => 'inactive', 'caption' => 'Parent nicht aktiv'],
+                ['code' => 200, 'icon' => 'error',    'caption' => 'Verbindungsfehler']
+            ]
+        ]);
     }
 }
