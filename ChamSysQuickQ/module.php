@@ -6,7 +6,7 @@ require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 
 class ChamSysQuickQ extends IPSModuleStrict
 {
-    use SmartLog;
+    use SmartLog_Trait;
 
     public function Create(): void
     {
@@ -110,7 +110,7 @@ class ChamSysQuickQ extends IPSModuleStrict
             return;
         }
 
-        $this->SmartLog("Unknown RequestAction Ident: $Ident", "ERROR");
+        $this->SLogError("Unknown RequestAction Ident: $Ident");
     }
 
     public function PlaybackGo(int $pbNumber): void
@@ -150,7 +150,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         $buffer = utf8_decode($data->Buffer);
         
         $address = strtok($buffer, "\0");
-        $this->SmartLog("Received OSC from QuickQ: $address", "INFO");
+        $this->SLogInfo("Received OSC from QuickQ: $address");
         
         return "";
     }
