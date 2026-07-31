@@ -11,6 +11,9 @@ class ChamSysQuickQ extends IPSModuleStrict
     public function Create(): void
     {
         parent::Create();
+        
+        // Erzwinge UDP Socket als Parent
+        $this->RequireParent('{82347F20-F541-41E1-AC5B-A636FD3AE2D8}');
 
         // Properties
         $this->RegisterPropertyString('Playbacks', '[]');
