@@ -177,7 +177,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([
-                'DataID' => '{C87D040B-E261-4191-B739-122B48A8D521}', // UDP TX GUID
+                'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', // I/O TX GUID
                 'Buffer' => utf8_encode($buf)
             ]));
         }
@@ -192,7 +192,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([
-                'DataID' => '{C87D040B-E261-4191-B739-122B48A8D521}', // UDP TX GUID
+                'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', // I/O TX GUID
                 'Buffer' => utf8_encode($buf)
             ]));
         }

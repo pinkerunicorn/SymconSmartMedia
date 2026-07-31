@@ -4,9 +4,9 @@
     "type": 3,
     "vendor": "Florian Graßinger",
     "aliases": ["ChamSys QuickQ 20"],
-    "parentRequirements": ["{7F7632D0-FF40-4F38-AF5F-00C7E533B038}"],
+    "parentRequirements": ["{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}"],
     "childRequirements": [],
-    "implemented": [],
+    "implemented": ["{018EF6B5-AB94-40C6-AA53-46943E824ACF}"],
     "prefix": "CQQ",
     "url": "https://github.com/pinkerunicorn/"
 }
