@@ -1,0 +1,56 @@
+{
+    "elements": [
+        {
+            "type": "List",
+            "name": "Playbacks",
+            "caption": "Playbacks",
+            "add": true,
+            "delete": true,
+            "columns": [
+                {
+                    "name": "ID",
+                    "caption": "Playback ID (z.B. 1)",
+                    "width": "100px",
+                    "add": 1,
+                    "edit": { "type": "NumberSpinner" }
+                },
+                {
+                    "name": "Name",
+                    "caption": "Name",
+                    "width": "auto",
+                    "add": "Playback",
+                    "edit": { "type": "ValidationTextBox" }
+                }
+            ]
+        },
+        {
+            "type": "List",
+            "name": "Heads",
+            "caption": "Lampen (Heads)",
+            "add": true,
+            "delete": true,
+            "columns": [
+                {
+                    "name": "ID",
+                    "caption": "Head ID (Patch)",
+                    "width": "100px",
+                    "add": 1,
+                    "edit": { "type": "NumberSpinner" }
+                },
+                {
+                    "name": "Name",
+                    "caption": "Name",
+                    "width": "auto",
+                    "add": "Lampe",
+                    "edit": { "type": "ValidationTextBox" }
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "TestCenter",
+            "environment": "OSC"
+        }
+    ]
+}
