@@ -45,7 +45,7 @@ class RoonZone extends IPSModuleStrict
         $this->EnableAction('State');
         $this->EnableAction('Volume');
 
-        $this->DA_RegisterAvailability(900, 1);
+        $this->DA_RegisterAvailability(900);
     }
 
     public function ApplyChanges(): void

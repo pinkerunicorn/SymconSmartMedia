@@ -59,7 +59,7 @@ class Michi extends IPSModuleStrict
             'ICON' => 'Network'
         ], 60);
 
-        $this->DA_RegisterAvailability(900, 1);
+        $this->DA_RegisterAvailability(900);
     }
 
     public function ApplyChanges(): void{
