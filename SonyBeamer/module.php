@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
 class SonyBeamer extends IPSModuleStrict
 {
+    use SmartLog_Trait;
     use DeviceAvailability_Trait;
 
     private static array $inputMap = [
@@ -152,10 +154,6 @@ class SonyBeamer extends IPSModuleStrict
         $this->DA_ApplyPresentation();
     }
 
-    protected function Log(string $Message): void
-    {
-        IPS_LogMessage('SmartVillaKunterbunt', 'SonyBeamer: '. $Message);
-    }
 
     public function RequestAction(string $Ident, mixed $Value): void{
         if ($Ident === 'DA_Watchdog') {
@@ -166,24 +164,24 @@ class SonyBeamer extends IPSModuleStrict
             case 'Power':
                 if ($Value) {
                     $this->SendSingleCommand('power "on"');
-                    $this->Log("Einschaltbefehl gesendet.");
+                    $this->SLogInfo("Einschaltbefehl gesendet.");
                 } else {
                     $this->SendSingleCommand('power "off"');
-                    $this->Log("Ausschaltbefehl gesendet.");
+                    $this->SLogInfo("Ausschaltbefehl gesendet.");
                 }
                 break;
             case 'Input':
                 if (isset(self::$inputMap[$Value])) {
                     $cmdVal = self::$inputMap[$Value];
                     $this->SendSingleCommand("input \"$cmdVal\"");
-                    $this->Log("Eingang auf $cmdVal gesetzt.");
+                    $this->SLogInfo("Eingang auf $cmdVal gesetzt.");
                 }
                 break;
             case 'PictureMode':
                 if (isset(self::$pictureModeMap[$Value])) {
                     $cmdVal = self::$pictureModeMap[$Value];
                     $this->SendSingleCommand("picture_mode \"$cmdVal\"");
-                    $this->Log("Bildmodus auf $cmdVal gesetzt.");
+                    $this->SLogInfo("Bildmodus auf $cmdVal gesetzt.");
                 }
                 break;
             default:
@@ -373,11 +371,6 @@ class SonyBeamer extends IPSModuleStrict
         }
     }
 
-    protected function LogMessage(string $Message, int $Type): bool
-    {
-        IPS_LogMessage('SmartVillaKunterbunt', 'SonyBeamer: '. $Message);
-        return true;
-    }
 
     public function GetConfigurationForm(): string
     {
