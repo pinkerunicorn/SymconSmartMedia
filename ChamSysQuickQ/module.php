@@ -20,17 +20,15 @@ class ChamSysQuickQ extends IPSModuleStrict
         
         $this->DA_RegisterAvailability(900);
 
-        // Profile anlegen
-        $this->CreateProfile('CQQ.Intensity', 2, '%', 0, 100, 1, 0, 'Sun');
-        $this->CreateProfile('CQQ.Switch', 0, '', 0, 1, 1, 0, 'Power');
-        if (!IPS_VariableProfileExists('CQQ.Action')) {
-            IPS_CreateVariableProfile('CQQ.Action', 1);
-            IPS_SetVariableProfileAssociation('CQQ.Action', 1, 'GO', '', 0x00FF00);
-            IPS_SetVariableProfileIcon('CQQ.Action', 'Execute');
-        }
-
         // Master Variable
-        $this->RegisterVariableFloat('MasterIntensity', 'Master Fader', '', 0);
+        $this->RegisterVariableFloat('MasterIntensity', 'Master Fader', [
+            'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+            'ICON' => 'Sun',
+            'SUFFIX' => '%',
+            'MINVALUE' => 0,
+            'MAXVALUE' => 100,
+            'STEP' => 1
+        ], 0);
         $this->EnableAction('MasterIntensity');
     }
 
@@ -50,9 +48,6 @@ class ChamSysQuickQ extends IPSModuleStrict
     {
         parent::ApplyChanges();
 
-        // Master Profile setzen
-        IPS_SetVariableCustomProfile($this->GetIDForIdent('MasterIntensity'), 'CQQ.Intensity');
-
         // Playbacks
         $playbacks = json_decode($this->ReadPropertyString('Playbacks'), true);
         if (is_array($playbacks)) {
@@ -61,18 +56,34 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $name = $playback['Name'];
 
                 $identIntensity = 'Playback_Intensity_' . $id;
-                $this->MaintainVariable($identIntensity, $name . ' Fader', 2, '', 10, true);
-                IPS_SetVariableCustomProfile($this->GetIDForIdent($identIntensity), 'CQQ.Intensity');
+                $this->RegisterVariableFloat($identIntensity, $name . ' Fader', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+                    'ICON' => 'Sun',
+                    'SUFFIX' => '%',
+                    'MINVALUE' => 0,
+                    'MAXVALUE' => 100,
+                    'STEP' => 1
+                ], 10);
                 $this->EnableAction($identIntensity);
 
                 $identGo = 'Playback_Go_' . $id;
-                $this->MaintainVariable($identGo, $name . ' Go', 1, '', 11, true);
-                IPS_SetVariableCustomProfile($this->GetIDForIdent($identGo), 'CQQ.Action');
+                $this->RegisterVariableInteger($identGo, $name . ' Go', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+                    'ICON' => 'Execute',
+                    'OPTIONS' => json_encode([
+                        ['Value' => 1, 'Caption' => 'GO', 'IconActive' => false, 'IconValue' => '', 'Color' => 0x00FF00]
+                    ])
+                ], 11);
                 $this->EnableAction($identGo);
                 
                 $identRelease = 'Playback_Release_' . $id;
-                $this->MaintainVariable($identRelease, $name . ' Release', 1, '', 12, true);
-                IPS_SetVariableCustomProfile($this->GetIDForIdent($identRelease), 'CQQ.Action');
+                $this->RegisterVariableInteger($identRelease, $name . ' Release', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+                    'ICON' => 'Execute',
+                    'OPTIONS' => json_encode([
+                        ['Value' => 1, 'Caption' => 'RELEASE', 'IconActive' => false, 'IconValue' => '', 'Color' => 0x00FF00]
+                    ])
+                ], 12);
                 $this->EnableAction($identRelease);
             }
         }
@@ -85,10 +96,27 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $name = $head['Name'];
 
                 $ident = 'Head_Intensity_' . $id;
-                $this->MaintainVariable($ident, $name . ' Intensität', 2, '', 20, true);
-                IPS_SetVariableCustomProfile($this->GetIDForIdent($ident), 'CQQ.Intensity');
+                $this->RegisterVariableFloat($ident, $name . ' Intensität', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+                    'ICON' => 'Sun',
+                    'SUFFIX' => '%',
+                    'MINVALUE' => 0,
+                    'MAXVALUE' => 100,
+                    'STEP' => 1
+                ], 20);
                 $this->EnableAction($ident);
             }
+        }
+
+        // Legacy-Profile bereinigen
+        if (IPS_VariableProfileExists('CQQ.Intensity')) {
+            IPS_DeleteVariableProfile('CQQ.Intensity');
+        }
+        if (IPS_VariableProfileExists('CQQ.Switch')) {
+            IPS_DeleteVariableProfile('CQQ.Switch');
+        }
+        if (IPS_VariableProfileExists('CQQ.Action')) {
+            IPS_DeleteVariableProfile('CQQ.Action');
         }
         
         $this->DA_ApplyPresentation();
@@ -211,16 +239,5 @@ class ChamSysQuickQ extends IPSModuleStrict
         }
     }
 
-    private function CreateProfile(string $Name, int $ProfileType, string $Suffix, int $MinValue, int $MaxValue, int $StepSize, int $Digits, string $Icon): void 
-    {
-        if (!IPS_VariableProfileExists($Name)) {
-            IPS_CreateVariableProfile($Name, $ProfileType);
-        }
-        IPS_SetVariableProfileText($Name, '', $Suffix);
-        IPS_SetVariableProfileValues($Name, $MinValue, $MaxValue, $StepSize);
-        IPS_SetVariableProfileDigits($Name, $Digits);
-        IPS_SetVariableProfileIcon($Name, $Icon);
-    }
 
-}
 

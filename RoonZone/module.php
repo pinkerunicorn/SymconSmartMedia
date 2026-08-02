@@ -25,9 +25,15 @@ class RoonZone extends IPSModuleStrict
 
         // Variablen registrieren
         $this->RegisterVariableInteger('State', 'ℹ Status', [
-            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'PROFILE'      => 'Roon.State',
-            'ICON'         => 'Information'
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'ICON'         => 'Information',
+            'OPTIONS'      => json_encode([
+                ['Value' => 0, 'Caption' => 'Previous', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 1, 'Caption' => 'Stop', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 2, 'Caption' => 'Play', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 3, 'Caption' => 'Pause', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 4, 'Caption' => 'Next', 'IconActive' => false, 'IconValue' => '', 'Color' => -1]
+            ])
         ], 1);
         $this->RegisterVariableString('Title', '🎵 Titel', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Melody'], 2);
         $this->RegisterVariableString('Artist', '🎤 Künstler', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'User'], 3);
@@ -65,15 +71,10 @@ class RoonZone extends IPSModuleStrict
         // Filter setzen (mit preg_quote für Sonderzeichen-Sicherheit)
         $this->SetReceiveDataFilter('.*' . preg_quote($topicZone, '/') . '.*');
 
-        if (!IPS_VariableProfileExists('Roon.State')) {
-            IPS_CreateVariableProfile('Roon.State', 1);
-            IPS_SetVariableProfileAssociation('Roon.State', 0, 'Previous', '', -1);
-            IPS_SetVariableProfileAssociation('Roon.State', 1, 'Stop', '', -1);
-            IPS_SetVariableProfileAssociation('Roon.State', 2, 'Play', '', -1);
-            IPS_SetVariableProfileAssociation('Roon.State', 3, 'Pause', '', -1);
-            IPS_SetVariableProfileAssociation('Roon.State', 4, 'Next', '', -1);
+        // Legacy-Profile bereinigen
+        if (IPS_VariableProfileExists('Roon.State')) {
+            IPS_DeleteVariableProfile('Roon.State');
         }
-        IPS_SetVariableCustomProfile($this->GetIDForIdent('State'), 'Roon.State');
 
         $this->DA_ApplyPresentation();
     }

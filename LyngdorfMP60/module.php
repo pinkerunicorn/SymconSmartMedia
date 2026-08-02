@@ -46,19 +46,19 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->EnableAction('Mute');
 
         $this->RegisterVariableInteger('Source', '🎵 Quelle', [
-            'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'        => 'TV'
         ], 4);
         $this->EnableAction('Source');
 
         $this->RegisterVariableInteger('AudioMode', '🎛 Audio Mode', [
-            'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'        => 'Sound'
         ], 5);
         $this->EnableAction('AudioMode');
 
         $this->RegisterVariableInteger('Voicing', '🗣 Voicing', [
-            'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'        => 'Speaker'
         ], 6);
         $this->EnableAction('Voicing');
@@ -81,7 +81,39 @@ class LyngdorfMP60 extends IPSModuleStrict
         // Regelmäßiges Polling (alle 30 Sekunden) als Fallback
         $this->RegisterTimer('UpdatePolling', 30000, 'LYNG_UpdateData($_IPS[\'TARGET\']);');
 
+        $this->RestoreDynamicPresentation('Source', 'SourceMap', 'TV');
+        $this->RestoreDynamicPresentation('AudioMode', 'AudioModeMap', 'Sound');
+        $this->RestoreDynamicPresentation('Voicing', 'VoicingMap', 'Speaker');
+
         $this->DA_ApplyPresentation();
+    }
+
+    private function RestoreDynamicPresentation(string $ident, string $mapName, string $icon): void
+    {
+        $map = json_decode($this->ReadAttributeString($mapName), true);
+        if (is_array($map) && count($map) > 0) {
+            $options = [];
+            foreach ($map as $key => $val) {
+                $options[] = [
+                    'Value' => (int)$key,
+                    'Caption' => $val,
+                    'IconActive' => true,
+                    'IconValue' => $icon,
+                    'Color' => -1
+                ];
+            }
+            IPS_SetVariableCustomPresentation($this->GetIDForIdent($ident), [
+                'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+                'ICON' => $icon,
+                'OPTIONS' => json_encode($options)
+            ]);
+            IPS_SetVariableCustomProfile($this->GetIDForIdent($ident), '');
+        }
+        
+        $profileName = 'Lyngdorf.'. $ident . '.'. $this->InstanceID;
+        if (IPS_VariableProfileExists($profileName)) {
+            IPS_DeleteVariableProfile($profileName);
+        }
     }
 
     protected function Log(string $text): void
@@ -334,12 +366,23 @@ class LyngdorfMP60 extends IPSModuleStrict
         $map[$index] = $name;
         $this->WriteAttributeString($mapName, json_encode($map));
         
-        $profileName = 'Lyngdorf.'. $ident . '.'. $this->InstanceID;
-        if (!IPS_VariableProfileExists($profileName)) {
-            IPS_CreateVariableProfile($profileName, 1);
+        $options = [];
+        foreach ($map as $key => $val) {
+            $options[] = [
+                'Value' => (int)$key,
+                'Caption' => $val,
+                'IconActive' => true,
+                'IconValue' => $icon,
+                'Color' => -1
+            ];
         }
-        IPS_SetVariableProfileAssociation($profileName, $index, $name, $icon, -1);
-        IPS_SetVariableCustomProfile($this->GetIDForIdent($ident), $profileName);
+        
+        IPS_SetVariableCustomPresentation($this->GetIDForIdent($ident), [
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'ICON' => $icon,
+            'OPTIONS' => json_encode($options)
+        ]);
+        IPS_SetVariableCustomProfile($this->GetIDForIdent($ident), '');
     }
 
     public function GetConfigurationForm(): string

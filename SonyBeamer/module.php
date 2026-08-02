@@ -60,17 +60,35 @@ class SonyBeamer extends IPSModuleStrict
         }
 
         $this->RegisterVariableInteger('Input', '🔌 Eingang', [
-            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'PROFILE'      => 'Sony.Input'
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'ICON' => 'Plug',
+            'OPTIONS' => json_encode([
+                ['Value' => 0, 'Caption' => 'HDMI 1', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 1, 'Caption' => 'HDMI 2', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 2, 'Caption' => 'Video 1', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 3, 'Caption' => 'Component', 'IconActive' => false, 'IconValue' => '', 'Color' => -1]
+            ])
         ], 20);
-        IPS_SetIcon($this->GetIDForIdent('Input'), 'Plug');
         $this->EnableAction('Input');
 
         $this->RegisterVariableInteger('PictureMode', '🖼️ Bildmodus', [
-            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'PROFILE'      => 'Sony.PictureMode'
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'ICON' => 'TV',
+            'OPTIONS' => json_encode([
+                ['Value' => 0, 'Caption' => 'Dynamic', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 1, 'Caption' => 'Standard', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 2, 'Caption' => 'Brightness Priority', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 3, 'Caption' => 'Cinema Film 1', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 4, 'Caption' => 'Cinema Film 2', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 5, 'Caption' => 'Reference', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 6, 'Caption' => 'TV', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 7, 'Caption' => 'Photo', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 8, 'Caption' => 'Game', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 9, 'Caption' => 'Bright Cinema', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 10, 'Caption' => 'Bright TV', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 11, 'Caption' => 'User', 'IconActive' => false, 'IconValue' => '', 'Color' => -1]
+            ])
         ], 30);
-        IPS_SetIcon($this->GetIDForIdent('PictureMode'), 'TV');
         $this->EnableAction('PictureMode');
 
         $this->RegisterVariableInteger('OperationTime', 'â± Betriebsstunden', [
@@ -103,52 +121,13 @@ class SonyBeamer extends IPSModuleStrict
         if ($interval < 5) $interval = 5;
         $this->SetTimerInterval('UpdateTimer', $interval * 1000);
 
-        // Self-Healing: Reset all corrupted presentations before re-applying
-        foreach (['Input','PictureMode'] as $_ident) {
-            IPS_SetVariableCustomPresentation($this->GetIDForIdent($_ident), []);
-        }
-        
-        // Input Profil
-        if (IPS_VariableProfileExists('Sony.Input') && IPS_GetVariableProfile('Sony.Input')['ProfileType'] !== 1) {
+        // Legacy-Profile bereinigen
+        if (IPS_VariableProfileExists('Sony.Input')) {
             IPS_DeleteVariableProfile('Sony.Input');
         }
-        if (!IPS_VariableProfileExists('Sony.Input')) {
-            IPS_CreateVariableProfile('Sony.Input', 1); // 1 = Integer
-            IPS_SetVariableProfileAssociation('Sony.Input', 0, 'HDMI 1', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.Input', 1, 'HDMI 2', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.Input', 2, 'Video 1', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.Input', 3, 'Component', '', -1);
-        }
-        IPS_SetVariableCustomProfile($this->GetIDForIdent('Input'), 'Sony.Input');
-        IPS_SetVariableCustomPresentation($this->GetIDForIdent('Input'), [
-                'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON'=> 'Plug'
-        ]);
-        
-        // Picture Mode Profil
-        if (IPS_VariableProfileExists('Sony.PictureMode') && IPS_GetVariableProfile('Sony.PictureMode')['ProfileType'] !== 1) {
+        if (IPS_VariableProfileExists('Sony.PictureMode')) {
             IPS_DeleteVariableProfile('Sony.PictureMode');
         }
-        if (!IPS_VariableProfileExists('Sony.PictureMode')) {
-            IPS_CreateVariableProfile('Sony.PictureMode', 1); // 1 = Integer
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 0, 'Dynamic', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 1, 'Standard', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 2, 'Brightness Priority', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 3, 'Cinema Film 1', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 4, 'Cinema Film 2', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 5, 'Reference', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 6, 'TV', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 7, 'Photo', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 8, 'Game', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 9, 'Bright Cinema', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 10, 'Bright TV', '', -1);
-            IPS_SetVariableProfileAssociation('Sony.PictureMode', 11, 'User', '', -1);
-        }
-        IPS_SetVariableCustomProfile($this->GetIDForIdent('PictureMode'), 'Sony.PictureMode');
-        IPS_SetVariableCustomPresentation($this->GetIDForIdent('PictureMode'), [
-                'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON'=> 'TV'
-        ]);
 
         $this->UpdateVisibility(!$this->GetValue('Power'));
         $this->DA_ApplyPresentation();
