@@ -94,7 +94,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->DA_ApplyPresentation();
     }
 
-    public function RequestAction($Ident, $Value): void
+    public function RequestAction(string $Ident, mixed $Value): void
     {
         if ($Ident === 'DA_Watchdog') {
             $this->DA_HandleWatchdog();
@@ -167,12 +167,12 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->SendOSCFloat("/head/{$headId}/col/b", $bFloat);
     }
 
-    public function ReceiveData($JSONString): string
+    public function ReceiveData(string $JSONString): string
     {
         $this->DA_SetAvailable(true);
         
         $data = json_decode($JSONString);
-        $buffer = utf8_decode($data->Buffer);
+        $buffer = mb_convert_encoding($data->Buffer, 'ISO-8859-1', 'UTF-8');
         
         $address = strtok($buffer, "\0");
         $this->SLogInfo("Received OSC from QuickQ: $address");
@@ -191,7 +191,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([
                 'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', // I/O TX GUID
-                'Buffer' => utf8_encode($buf)
+                'Buffer' => mb_convert_encoding($buf, 'UTF-8', 'ISO-8859-1')
             ]));
         }
     }
@@ -206,7 +206,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([
                 'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', // I/O TX GUID
-                'Buffer' => utf8_encode($buf)
+                'Buffer' => mb_convert_encoding($buf, 'UTF-8', 'ISO-8859-1')
             ]));
         }
     }
@@ -222,46 +222,5 @@ class ChamSysQuickQ extends IPSModuleStrict
         IPS_SetVariableProfileIcon($Name, $Icon);
     }
 
-    public function GetConfigurationForm(): string
-    {
-        return json_encode([
-            'elements' => [
-                [
-                    'type'    => 'Label',
-                    'caption' => 'ChamSys QuickQ OSC-Steuerung. Verbindung über UDP I/O Instanz als Parent.'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Playbacks (JSON-Array mit ID und Name):'
-                ],
-                [
-                    'type' => 'ValidationTextBox',
-                    'name' => 'Playbacks',
-                    'caption' => 'Playbacks (JSON)'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Heads (JSON-Array mit ID und Name):'
-                ],
-                [
-                    'type' => 'ValidationTextBox',
-                    'name' => 'Heads',
-                    'caption' => 'Heads (JSON)'
-                ]
-            ],
-            'actions' => [
-                [
-                    'type'    => 'Button',
-                    'caption' => 'Einstellungen übernehmen',
-                    'onClick' => 'IPS_ApplyChanges($id);'
-                ]
-            ],
-            'status' => [
-                ['code' => 102, 'icon' => 'active',   'caption' => 'ChamSys QuickQ verbunden'],
-                ['code' => 104, 'icon' => 'inactive', 'caption' => 'Nicht konfiguriert'],
-                ['code' => 201, 'icon' => 'inactive', 'caption' => 'Parent nicht aktiv'],
-                ['code' => 200, 'icon' => 'error',    'caption' => 'Verbindungsfehler']
-            ]
-        ]);
-    }
 }
+

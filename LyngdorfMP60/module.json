@@ -2,7 +2,7 @@
     "id": "{0D99B270-08C6-41E5-ADEF-38226D278102}",
     "name": "LyngdorfMP60",
     "type": 3,
-    "vendor": "Lyngdorf",
+    "vendor": "Florian Graßinger",
     "url": "https://github.com/pinkerunicorn/SymconSmartDevices/tree/main/LyngdorfMP60",
     "aliases": [],
     "parentRequirements": [

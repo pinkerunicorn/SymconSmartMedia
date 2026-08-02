@@ -1,9 +1,12 @@
 {
-    "id": "{D2A3B4C5-1234-5678-90AB-CDEF12345678}",
-    "author": "Florian Graßinger",
-    "name": "SymconSmartMedia",
-    "url": "https://github.com/pinkerunicorn/",
-    "version": "1.0",
-    "build": 0,
-    "date": 0
+    "id":  "{D2A3B4C5-1234-5678-90AB-CDEF12345678}",
+    "author":  "Florian Graßinger",
+    "name":  "SymconSmartMedia",
+    "url":  "https://github.com/pinkerunicorn/",
+    "version":  "1.0",
+    "build":  0,
+    "date":  0,
+    "compatibility":  {
+                          "version":  "9.0"
+                      }
 }

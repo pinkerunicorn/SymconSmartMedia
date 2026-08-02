@@ -26,9 +26,9 @@ class RoonZone extends IPSModuleStrict
         // Variablen registrieren
         $this->RegisterVariableInteger('State', 'ℹ Status', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'PROFILE'      => 'Roon.State'
+            'PROFILE'      => 'Roon.State',
+            'ICON'         => 'Information'
         ], 1);
-        IPS_SetIcon($this->GetIDForIdent('State'), 'Information');
         $this->RegisterVariableString('Title', '🎵 Titel', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Melody'], 2);
         $this->RegisterVariableString('Artist', '🎤 Künstler', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'User'], 3);
         $this->RegisterVariableString('Album', '💿 Album', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Database'], 4);
