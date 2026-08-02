@@ -239,5 +239,4 @@ class ChamSysQuickQ extends IPSModuleStrict
         }
     }
 
-
-
+}
