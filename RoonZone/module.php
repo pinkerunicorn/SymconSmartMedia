@@ -30,11 +30,11 @@ class RoonZone extends IPSModuleStrict
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'         => 'Information',
             'OPTIONS'      => json_encode([
-                ['Value' => 0, 'Caption' => 'Previous', 'IconActive' => true, 'IconValue' => 'Previous', 'Color' => -1],
-                ['Value' => 1, 'Caption' => 'Stop', 'IconActive' => true, 'IconValue' => 'Stop', 'Color' => -1],
-                ['Value' => 2, 'Caption' => 'Play', 'IconActive' => true, 'IconValue' => 'Play', 'Color' => -1],
-                ['Value' => 3, 'Caption' => 'Pause', 'IconActive' => true, 'IconValue' => 'Pause', 'Color' => -1],
-                ['Value' => 4, 'Caption' => 'Next', 'IconActive' => true, 'IconValue' => 'Next', 'Color' => -1]
+                ['Value' => 0, 'Caption' => '⏮ Previous', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 1, 'Caption' => '⏹ Stop', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 2, 'Caption' => '▶ Play', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 3, 'Caption' => '⏸ Pause', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
+                ['Value' => 4, 'Caption' => '⏭ Next', 'IconActive' => false, 'IconValue' => '', 'Color' => -1]
             ])
         ], 1);
         $this->RegisterVariableString('Title', '🎵 Titel', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Melody'], 2);
