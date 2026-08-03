@@ -64,6 +64,7 @@ class Michi extends IPSModuleStrict
 
     public function ApplyChanges(): void{
         parent::ApplyChanges();
+        $this->DA_ApplyPresentation();
 
         if (empty($this->ReadPropertyString('Host'))) {
             $this->SetStatus(104);
@@ -84,10 +85,6 @@ class Michi extends IPSModuleStrict
     }
 
     public function RequestAction(string $Ident, mixed $Value): void{
-        if ($Ident === 'DA_Watchdog') {
-            $this->DA_HandleWatchdog();
-            return;
-        }
         switch ($Ident) {
             case 'Power':
                 if ($Value) {

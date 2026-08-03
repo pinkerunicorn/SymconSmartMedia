@@ -67,11 +67,13 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->RegisterVariableString('AudioTypeOut', '📤 Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 8);
 
         $this->DA_RegisterAvailability(900);
+        $this->DA_RegisterWatchdog();
     }
 
     public function ApplyChanges(): void
     {
         parent::ApplyChanges();
+        $this->DA_ApplyPresentation();
 
         $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ($parentId > 0) {
@@ -179,6 +181,7 @@ class LyngdorfMP60 extends IPSModuleStrict
     public function ReceiveData(string $JSONString): string
     {
         $this->DA_SetAvailable(true);
+        $this->DA_ResetWatchdog(300);
         $data = json_decode($JSONString);
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->SLog('ERROR', 'Ungültiges JSON empfangen', json_last_error_msg());

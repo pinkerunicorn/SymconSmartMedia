@@ -19,6 +19,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->RegisterPropertyString('Heads', '[]');
         
         $this->DA_RegisterAvailability(900);
+        $this->DA_RegisterWatchdog();
 
         // Master Variable
         $this->RegisterVariableFloat('MasterIntensity', 'Master Fader', [
@@ -47,6 +48,7 @@ class ChamSysQuickQ extends IPSModuleStrict
     public function ApplyChanges(): void
     {
         parent::ApplyChanges();
+        $this->DA_ApplyPresentation();
 
         // Playbacks
         $playbacks = json_decode($this->ReadPropertyString('Playbacks'), true);
@@ -197,6 +199,7 @@ class ChamSysQuickQ extends IPSModuleStrict
     public function ReceiveData(string $JSONString): string
     {
         $this->DA_SetAvailable(true);
+        $this->DA_ResetWatchdog(300);
         
         $data = json_decode($JSONString);
         $buffer = mb_convert_encoding($data->Buffer, 'ISO-8859-1', 'UTF-8');

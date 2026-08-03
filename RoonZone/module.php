@@ -54,6 +54,7 @@ class RoonZone extends IPSModuleStrict
         $this->EnableAction('Volume');
 
         $this->DA_RegisterAvailability(900);
+        $this->DA_RegisterWatchdog();
     }
 
     public function ApplyChanges(): void
@@ -87,6 +88,7 @@ class RoonZone extends IPSModuleStrict
     public function ReceiveData(string $JSONString): string
     {
         $this->DA_SetAvailable(true);
+        $this->DA_ResetWatchdog(300);
         try {
             $data = json_decode($JSONString, true);
             if (!is_array($data)) return 'NOK';
