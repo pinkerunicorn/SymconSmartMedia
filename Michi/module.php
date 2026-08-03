@@ -81,7 +81,6 @@ class Michi extends IPSModuleStrict
         // Initiale Sichtbarkeit der Variablen setzen
         $this->UpdatePowerState($this->GetValue('Power'));
 
-        $this->DA_ApplyPresentation();
     }
 
     public function RequestAction(string $Ident, mixed $Value): void{

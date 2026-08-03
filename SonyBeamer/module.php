@@ -130,7 +130,7 @@ class SonyBeamer extends IPSModuleStrict
         }
 
         $this->UpdateVisibility(!$this->GetValue('Power'));
-        $this->DA_ApplyPresentation();
+
     }
 
 

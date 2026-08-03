@@ -118,8 +118,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         if (IPS_VariableProfileExists('CQQ.Action')) {
             IPS_DeleteVariableProfile('CQQ.Action');
         }
-        
-        $this->DA_ApplyPresentation();
+
     }
 
     public function RequestAction(string $Ident, mixed $Value): void

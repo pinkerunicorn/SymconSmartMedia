@@ -76,7 +76,6 @@ class RoonZone extends IPSModuleStrict
             IPS_DeleteVariableProfile('Roon.State');
         }
 
-        $this->DA_ApplyPresentation();
     }
 
     public function ReceiveData(string $JSONString): string

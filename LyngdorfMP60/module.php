@@ -81,14 +81,13 @@ class LyngdorfMP60 extends IPSModuleStrict
         // Regelmäßiges Polling (alle 30 Sekunden) als Fallback
         $this->RegisterTimer('UpdatePolling', 30000, 'LYNG_UpdateData($_IPS[\'TARGET\']);');
 
-        $this->RestoreDynamicPresentation('Source', 'SourceMap', 'TV');
-        $this->RestoreDynamicPresentation('AudioMode', 'AudioModeMap', 'Sound');
-        $this->RestoreDynamicPresentation('Voicing', 'VoicingMap', 'Speaker');
+        $this->RestoreDynamicPresentation('Source', '🎵 Quelle', 4, 'SourceMap', 'TV');
+        $this->RestoreDynamicPresentation('AudioMode', '🎛 Audio Mode', 5, 'AudioModeMap', 'Sound');
+        $this->RestoreDynamicPresentation('Voicing', '🗣 Voicing', 6, 'VoicingMap', 'Speaker');
 
-        $this->DA_ApplyPresentation();
     }
 
-    private function RestoreDynamicPresentation(string $ident, string $mapName, string $icon): void
+    private function RestoreDynamicPresentation(string $ident, string $varName, int $position, string $mapName, string $icon): void
     {
         $map = json_decode($this->ReadAttributeString($mapName), true);
         if (is_array($map) && count($map) > 0) {
@@ -102,11 +101,11 @@ class LyngdorfMP60 extends IPSModuleStrict
                     'Color' => -1
                 ];
             }
-            IPS_SetVariableCustomPresentation($this->GetIDForIdent($ident), [
+            $this->RegisterVariableInteger($ident, $varName, [
                 'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
                 'ICON' => $icon,
                 'OPTIONS' => json_encode($options)
-            ]);
+            ], $position);
             IPS_SetVariableCustomProfile($this->GetIDForIdent($ident), '');
         }
         
@@ -268,7 +267,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         elseif (preg_match('/^SRC\((\d+)\)"(.*)"$/', $command, $matches)) {
             $index = intval($matches[1]);
             $name = $matches[2];
-            $this->UpdateDynamicProfile('Source', 'SourceMap', $index, $name, 'TV');
+            $this->UpdateDynamicProfile('Source', '🎵 Quelle', 4, 'SourceMap', $index, $name, 'TV');
             $this->SetValue('Source', $index);
         }
         elseif (preg_match('/^SRC\((\d+)\)$/', $command, $matches)) {
@@ -277,7 +276,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         elseif (preg_match('/^AUDMODE\((\d+)\)"(.*)"$/', $command, $matches)) {
             $index = intval($matches[1]);
             $name = $matches[2];
-            $this->UpdateDynamicProfile('AudioMode', 'AudioModeMap', $index, $name, 'Sound');
+            $this->UpdateDynamicProfile('AudioMode', '🎛 Audio Mode', 5, 'AudioModeMap', $index, $name, 'Sound');
             $this->SetValue('AudioMode', $index);
         }
         elseif (preg_match('/^AUDMODE\((\d+)\)$/', $command, $matches)) {
@@ -286,7 +285,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         elseif (preg_match('/^RPVOI\((\d+)\)"(.*)"$/', $command, $matches)) {
             $index = intval($matches[1]);
             $name = $matches[2];
-            $this->UpdateDynamicProfile('Voicing', 'VoicingMap', $index, $name, 'Speaker');
+            $this->UpdateDynamicProfile('Voicing', '🗣 Voicing', 6, 'VoicingMap', $index, $name, 'Speaker');
             $this->SetValue('Voicing', $index);
         }
         elseif (preg_match('/^RPVOI\((\d+)\)$/', $command, $matches)) {
@@ -353,7 +352,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         return true;
     }
 
-    private function UpdateDynamicProfile(string $ident, string $mapName, int $index, string $name, string $icon): void
+    private function UpdateDynamicProfile(string $ident, string $varName, int $position, string $mapName, int $index, string $name, string $icon): void
     {
         $map = json_decode($this->ReadAttributeString($mapName), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -377,11 +376,11 @@ class LyngdorfMP60 extends IPSModuleStrict
             ];
         }
         
-        IPS_SetVariableCustomPresentation($this->GetIDForIdent($ident), [
+        $this->RegisterVariableInteger($ident, $varName, [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
             'ICON' => $icon,
             'OPTIONS' => json_encode($options)
-        ]);
+        ], $position);
         IPS_SetVariableCustomProfile($this->GetIDForIdent($ident), '');
     }
 
