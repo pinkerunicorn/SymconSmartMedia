@@ -23,13 +23,13 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->SetBuffer('ReceiveBuffer', '');
 
         // Variablen registrieren
-        $this->RegisterVariableBoolean('Power', '⚡ Power', [
+        $this->RegisterVariableBoolean('Power', 'Power', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SWITCH,
             'ICON'        => 'Power'
         ], 1);
         $this->EnableAction('Power');
 
-        $this->RegisterVariableFloat('Volume', '🔊 Lautstärke', [
+        $this->RegisterVariableFloat('Volume', 'Lautstärke', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SLIDER,
             'ICON'        => 'Intensity',
             'SUFFIX'      => 'dB',
@@ -39,32 +39,32 @@ class LyngdorfMP60 extends IPSModuleStrict
         ], 2);
         $this->EnableAction('Volume');
 
-        $this->RegisterVariableBoolean('Mute', '🔇 Mute', [
+        $this->RegisterVariableBoolean('Mute', 'Mute', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SWITCH,
             'ICON'        => 'Speaker'
         ], 3);
         $this->EnableAction('Mute');
 
-        $this->RegisterVariableInteger('Source', '🎵 Quelle', [
+        $this->RegisterVariableInteger('Source', 'Quelle', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'        => 'TV'
         ], 4);
         $this->EnableAction('Source');
 
-        $this->RegisterVariableInteger('AudioMode', '🎛 Audio Mode', [
+        $this->RegisterVariableInteger('AudioMode', 'Audio Mode', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'        => 'Sound'
         ], 5);
         $this->EnableAction('AudioMode');
 
-        $this->RegisterVariableInteger('Voicing', '🗣 Voicing', [
+        $this->RegisterVariableInteger('Voicing', 'Voicing', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'        => 'Speaker'
         ], 6);
         $this->EnableAction('Voicing');
 
-        $this->RegisterVariableString('AudioTypeIn', '📥 Audio Type In', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 7);
-        $this->RegisterVariableString('AudioTypeOut', '📤 Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 8);
+        $this->RegisterVariableString('AudioTypeIn', 'Audio Type In', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 7);
+        $this->RegisterVariableString('AudioTypeOut', 'Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 8);
 
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();

@@ -43,7 +43,7 @@ class SonyBeamer extends IPSModuleStrict
         $this->RegisterTimer('UpdateTimer', 0, 'SONY_UpdateStatus($_IPS[\'TARGET\']);');
 
         // Variablen registrieren
-        $this->RegisterVariableBoolean('Power', '📺 Status', [
+        $this->RegisterVariableBoolean('Power', 'Status', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SWITCH,
             'ICON'        => 'Power'
         ], 10);
@@ -59,7 +59,7 @@ class SonyBeamer extends IPSModuleStrict
             $this->UnregisterVariable('PictureMode');
         }
 
-        $this->RegisterVariableInteger('Input', '🔌 Eingang', [
+        $this->RegisterVariableInteger('Input', 'Eingang', [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
             'ICON' => 'Plug',
             'OPTIONS' => json_encode([
@@ -71,7 +71,7 @@ class SonyBeamer extends IPSModuleStrict
         ], 20);
         $this->EnableAction('Input');
 
-        $this->RegisterVariableInteger('PictureMode', '🖼️ Bildmodus', [
+        $this->RegisterVariableInteger('PictureMode', 'Bildmodus', [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
             'ICON' => 'TV',
             'OPTIONS' => json_encode([
@@ -91,12 +91,12 @@ class SonyBeamer extends IPSModuleStrict
         ], 30);
         $this->EnableAction('PictureMode');
 
-        $this->RegisterVariableInteger('OperationTime', '🕐 Betriebsstunden', [
+        $this->RegisterVariableInteger('OperationTime', 'Betriebsstunden', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'ICON'=> 'Clock',
             'SUFFIX'=> 'h'
         ], 40);
-        $this->RegisterVariableInteger('LightSourceTime', '💡 Lampenstunden', [
+        $this->RegisterVariableInteger('LightSourceTime', 'Lampenstunden', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'ICON'=> 'Bulb',
             'SUFFIX'=> 'h'
