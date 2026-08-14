@@ -10,8 +10,6 @@ class ChamSysQuickQ extends IPSModuleStrict
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
 
-    private const FADE_INTERVAL_MS = 50; // Timer-Intervall in ms
-
     public function Create(): void
     {
         parent::Create();
@@ -48,7 +46,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $name = $playback['Name'];
                 $basePos = 10 + ($index * 10);
 
-                // Fader (0-100%)
+                // Fader (0-100%) – direktes Steuern des Playback-Levels
                 $identFader = 'PB_Fader_' . $id;
                 $this->RegisterVariableFloat($identFader, $name . ' Fader', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
@@ -60,17 +58,29 @@ class ChamSysQuickQ extends IPSModuleStrict
                 ], $basePos);
                 $this->EnableAction($identFader);
 
-                // Fade-Zeit (0-30 Sekunden)
-                $identFadeTime = 'PB_FadeTime_' . $id;
-                $this->RegisterVariableFloat($identFadeTime, $name . ' Fadezeit', [
+                // Effektwert (0-100%) – Zielwert für Flash
+                $identEffect = 'PB_Effect_' . $id;
+                $this->RegisterVariableFloat($identEffect, $name . ' Effektwert', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+                    'ICON' => 'Fog',
+                    'SUFFIX' => '%',
+                    'MINVALUE' => 0,
+                    'MAXVALUE' => 100,
+                    'STEP' => 1
+                ], $basePos + 1);
+                $this->EnableAction($identEffect);
+
+                // Haltezeit (0-5s in 0.1s Schritten)
+                $identHoldTime = 'PB_HoldTime_' . $id;
+                $this->RegisterVariableFloat($identHoldTime, $name . ' Haltezeit', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
                     'ICON' => 'Clock',
                     'SUFFIX' => 's',
                     'MINVALUE' => 0,
                     'MAXVALUE' => 5,
                     'STEP' => 0.1
-                ], $basePos + 1);
-                $this->EnableAction($identFadeTime);
+                ], $basePos + 2);
+                $this->EnableAction($identHoldTime);
 
                 // Go Button
                 $identGo = 'PB_Go_' . $id;
@@ -80,10 +90,10 @@ class ChamSysQuickQ extends IPSModuleStrict
                     'OPTIONS' => json_encode([
                         ['Value' => 1, 'Caption' => 'GO', 'IconActive' => true, 'IconValue' => 'Execute', 'Color' => 0x00CC00]
                     ])
-                ], $basePos + 2);
+                ], $basePos + 3);
                 $this->EnableAction($identGo);
 
-                // Flash Button (fadet zum Fader-Wert mit Fadezeit)
+                // Flash Button (Shot: Effektwert halten, dann zurück auf 0%)
                 $identFlash = 'PB_Flash_' . $id;
                 $this->RegisterVariableInteger($identFlash, $name . ' Flash', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
@@ -91,11 +101,11 @@ class ChamSysQuickQ extends IPSModuleStrict
                     'OPTIONS' => json_encode([
                         ['Value' => 1, 'Caption' => 'FLASH', 'IconActive' => true, 'IconValue' => 'Electricity', 'Color' => 0xFFAA00]
                     ])
-                ], $basePos + 3);
+                ], $basePos + 4);
                 $this->EnableAction($identFlash);
 
-                // Fade-Timer registrieren (initial deaktiviert)
-                $this->RegisterTimer('FadeTimer_' . $id, 0, 'CQQ_FadeTick($_IPS[\'TARGET\'], ' . $id . ');');
+                // Shot-Timer (für Haltezeit, initial deaktiviert)
+                $this->RegisterTimer('ShotTimer_' . $id, 0, 'CQQ_ShotEnd($_IPS[\'TARGET\'], ' . $id . ');');
             }
         }
 
@@ -111,6 +121,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     || str_starts_with($ident, 'Playback_Go_')
                     || str_starts_with($ident, 'Playback_Release_')
                     || str_starts_with($ident, 'PB_Fade_')
+                    || str_starts_with($ident, 'PB_FadeTime_')
                 ) {
                     $this->SendDebug('Cleanup', "Lösche Legacy-Variable: $ident (ID: $childID)", 0);
                     IPS_DeleteVariable($childID);
@@ -141,8 +152,14 @@ class ChamSysQuickQ extends IPSModuleStrict
             return;
         }
 
-        // Fade-Zeit: Nur Wert speichern
-        if (str_starts_with($Ident, 'PB_FadeTime_')) {
+        // Effektwert: Nur Wert speichern
+        if (str_starts_with($Ident, 'PB_Effect_')) {
+            $this->SetValue($Ident, $Value);
+            return;
+        }
+
+        // Haltezeit: Nur Wert speichern
+        if (str_starts_with($Ident, 'PB_HoldTime_')) {
             $this->SetValue($Ident, $Value);
             return;
         }
@@ -154,86 +171,47 @@ class ChamSysQuickQ extends IPSModuleStrict
             return;
         }
 
-        // Flash: Fade zum Fader-Wert mit Fadezeit
+        // Flash: Shot-Effekt (Effektwert setzen → Haltezeit warten → zurück auf 0%)
         if (str_starts_with($Ident, 'PB_Flash_')) {
             $id = (int)str_replace('PB_Flash_', '', $Ident);
-            $this->StartFade($id);
+            $this->StartShot($id);
             return;
         }
 
         $this->SLogError("Unbekannte Aktion: $Ident");
     }
 
-    // --- Fade-Logik ---
+    // --- Shot-Logik (Flash mit Haltezeit) ---
 
-    private function StartFade(int $pbId): void
+    private function StartShot(int $pbId): void
     {
-        $fadeTime = $this->GetValue('PB_FadeTime_' . $pbId);
-        $targetValue = $this->GetValue('PB_Fader_' . $pbId);
+        $effectValue = $this->GetValue('PB_Effect_' . $pbId);
+        $holdTime = $this->GetValue('PB_HoldTime_' . $pbId);
 
-        if ($fadeTime <= 0) {
-            // Kein Fade, sofort setzen
-            $this->SendOSCFloat("/pb/{$pbId}", max(0.0, min(1.0, $targetValue / 100.0)));
-            $this->SendDebug('Fade', "PB {$pbId} -> {$targetValue}% (sofort)", 0);
+        // Sofort auf Effektwert setzen
+        $this->SendOSCFloat("/pb/{$pbId}", max(0.0, min(1.0, $effectValue / 100.0)));
+        $this->SetValue('PB_Fader_' . $pbId, $effectValue);
+        $this->SendDebug('Shot', "PB {$pbId}: ON bei {$effectValue}% (Haltezeit: {$holdTime}s)", 0);
+
+        if ($holdTime <= 0) {
+            // Keine Haltezeit → bleibt auf dem Wert stehen
             return;
         }
 
-        // Aktuellen Ist-Wert vom Pult holen (= letzter gesendeter Wert)
-        // Wir lesen den Buffer, falls ein Fade schon läuft, nehmen wir den aktuellen Zwischenstand
-        $fadeState = json_decode($this->GetBuffer('FadeState_' . $pbId), true);
-        if (is_array($fadeState) && isset($fadeState['current'])) {
-            $startValue = $fadeState['current'];
-        } else {
-            // Kein laufender Fade - wir starten bei 0 wenn der Fader auf einen Wert gesetzt ist
-            $startValue = 0.0;
-        }
-
-        $totalSteps = max(1, (int)round($fadeTime * 1000 / self::FADE_INTERVAL_MS));
-
-        $fadeState = [
-            'pbId' => $pbId,
-            'start' => $startValue,
-            'target' => $targetValue,
-            'current' => $startValue,
-            'step' => 0,
-            'totalSteps' => $totalSteps
-        ];
-
-        $this->SetBuffer('FadeState_' . $pbId, json_encode($fadeState));
-        $this->SetTimerInterval('FadeTimer_' . $pbId, self::FADE_INTERVAL_MS);
-
-        $this->SendDebug('Fade', "PB {$pbId}: {$startValue}% -> {$targetValue}% in {$fadeTime}s ({$totalSteps} Schritte)", 0);
+        // Timer starten: nach Haltezeit auf 0% zurücksetzen
+        $holdTimeMs = max(1, (int)round($holdTime * 1000));
+        $this->SetTimerInterval('ShotTimer_' . $pbId, $holdTimeMs);
     }
 
-    public function FadeTick(int $pbId): void
+    public function ShotEnd(int $pbId): void
     {
-        $fadeState = json_decode($this->GetBuffer('FadeState_' . $pbId), true);
-        if (!is_array($fadeState)) {
-            $this->SetTimerInterval('FadeTimer_' . $pbId, 0);
-            return;
-        }
+        // Timer deaktivieren (einmalig)
+        $this->SetTimerInterval('ShotTimer_' . $pbId, 0);
 
-        $fadeState['step']++;
-        $progress = min(1.0, $fadeState['step'] / $fadeState['totalSteps']);
-
-        // Lineare Interpolation
-        $currentValue = $fadeState['start'] + ($fadeState['target'] - $fadeState['start']) * $progress;
-        $fadeState['current'] = $currentValue;
-
-        // An Pult senden
-        $this->SendOSCFloat("/pb/{$pbId}", max(0.0, min(1.0, $currentValue / 100.0)));
-
-        // Fader-Variable im WebFront live mitziehen
-        $this->SetValue('PB_Fader_' . $pbId, round($currentValue, 1));
-
-        if ($progress >= 1.0) {
-            // Fade fertig
-            $this->SetTimerInterval('FadeTimer_' . $pbId, 0);
-            $this->SetBuffer('FadeState_' . $pbId, '');
-            $this->SendDebug('Fade', "PB {$pbId}: Fertig bei {$currentValue}%", 0);
-        } else {
-            $this->SetBuffer('FadeState_' . $pbId, json_encode($fadeState));
-        }
+        // Playback auf 0% zurücksetzen
+        $this->SendOSCFloat("/pb/{$pbId}", 0.0);
+        $this->SetValue('PB_Fader_' . $pbId, 0.0);
+        $this->SendDebug('Shot', "PB {$pbId}: OFF (zurück auf 0%)", 0);
     }
 
     // --- Öffentliche Funktionen für Skript-Zugriff ---
@@ -253,11 +231,11 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->SendOSCFloat("/pb/{$pbNumber}", max(0.0, min(1.0, $level)));
     }
 
-    public function FadePlayback(int $pbNumber, float $targetPercent, float $fadeTimeSec): void
+    public function ShotPlayback(int $pbNumber, float $effectPercent, float $holdTimeSec): void
     {
-        $this->SetValue('PB_Fader_' . $pbNumber, $targetPercent);
-        $this->SetValue('PB_FadeTime_' . $pbNumber, $fadeTimeSec);
-        $this->StartFade($pbNumber);
+        $this->SetValue('PB_Effect_' . $pbNumber, $effectPercent);
+        $this->SetValue('PB_HoldTime_' . $pbNumber, $holdTimeSec);
+        $this->StartShot($pbNumber);
     }
 
     // --- Empfang vom Pult ---
