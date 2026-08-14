@@ -94,8 +94,8 @@ class ChamSysQuickQ extends IPSModuleStrict
                     || str_starts_with($ident, 'Playback_Go_')
                     || str_starts_with($ident, 'Playback_Release_')
                 ) {
-                    $this->SendDebug('Cleanup', "Lösche Legacy-Variable: $ident", 0);
-                    $this->UnregisterVariable($ident);
+                    $this->SendDebug('Cleanup', "Lösche Legacy-Variable: $ident (ID: $childID)", 0);
+                    IPS_DeleteVariable($childID);
                 }
             }
         }
