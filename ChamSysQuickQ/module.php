@@ -171,10 +171,10 @@ class ChamSysQuickQ extends IPSModuleStrict
             return;
         }
 
-        // Flash
+        // Flash: Fade zum Fader-Wert mit Fadezeit
         if (str_starts_with($Ident, 'PB_Flash_')) {
             $id = (int)str_replace('PB_Flash_', '', $Ident);
-            $this->SendOSCFloat("/pb/{$id}/flash", 1.0);
+            $this->StartFade($id);
             return;
         }
 
