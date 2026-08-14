@@ -72,17 +72,6 @@ class ChamSysQuickQ extends IPSModuleStrict
                 ], $basePos + 1);
                 $this->EnableAction($identFadeTime);
 
-                // Fade-Button
-                $identFade = 'PB_Fade_' . $id;
-                $this->RegisterVariableInteger($identFade, $name . ' Fade starten', [
-                    'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-                    'ICON' => 'Rocket',
-                    'OPTIONS' => json_encode([
-                        ['Value' => 1, 'Caption' => 'FADE', 'IconActive' => true, 'IconValue' => 'Rocket', 'Color' => 0x3399FF]
-                    ])
-                ], $basePos + 2);
-                $this->EnableAction($identFade);
-
                 // Go Button
                 $identGo = 'PB_Go_' . $id;
                 $this->RegisterVariableInteger($identGo, $name . ' Go', [
@@ -91,10 +80,10 @@ class ChamSysQuickQ extends IPSModuleStrict
                     'OPTIONS' => json_encode([
                         ['Value' => 1, 'Caption' => 'GO', 'IconActive' => true, 'IconValue' => 'Execute', 'Color' => 0x00CC00]
                     ])
-                ], $basePos + 3);
+                ], $basePos + 2);
                 $this->EnableAction($identGo);
 
-                // Flash Button
+                // Flash Button (fadet zum Fader-Wert mit Fadezeit)
                 $identFlash = 'PB_Flash_' . $id;
                 $this->RegisterVariableInteger($identFlash, $name . ' Flash', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
@@ -102,7 +91,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     'OPTIONS' => json_encode([
                         ['Value' => 1, 'Caption' => 'FLASH', 'IconActive' => true, 'IconValue' => 'Electricity', 'Color' => 0xFFAA00]
                     ])
-                ], $basePos + 4);
+                ], $basePos + 3);
                 $this->EnableAction($identFlash);
 
                 // Fade-Timer registrieren (initial deaktiviert)
@@ -121,6 +110,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     || str_starts_with($ident, 'Playback_Intensity_')
                     || str_starts_with($ident, 'Playback_Go_')
                     || str_starts_with($ident, 'Playback_Release_')
+                    || str_starts_with($ident, 'PB_Fade_')
                 ) {
                     $this->SendDebug('Cleanup', "Lösche Legacy-Variable: $ident (ID: $childID)", 0);
                     IPS_DeleteVariable($childID);
@@ -154,13 +144,6 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Fade-Zeit: Nur Wert speichern
         if (str_starts_with($Ident, 'PB_FadeTime_')) {
             $this->SetValue($Ident, $Value);
-            return;
-        }
-
-        // Fade starten
-        if (str_starts_with($Ident, 'PB_Fade_')) {
-            $id = (int)str_replace('PB_Fade_', '', $Ident);
-            $this->StartFade($id);
             return;
         }
 
