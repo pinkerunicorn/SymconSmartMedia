@@ -139,7 +139,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         if (strpos($Ident, 'Playback_Intensity_') === 0) {
             $id = (int)str_replace('Playback_Intensity_', '', $Ident);
             $this->SetValue($Ident, $Value);
-            $this->SendOSCFloat("/pb/{$id}/fader", max(0.0, min(1.0, $Value / 100.0)));
+            $this->SendOSCFloat("/pb/{$id}", max(0.0, min(1.0, $Value / 100.0)));
             return;
         }
 
@@ -177,7 +177,7 @@ class ChamSysQuickQ extends IPSModuleStrict
 
     public function SetPlaybackFader(int $pbNumber, float $level): void
     {
-        $this->SendOSCFloat("/pb/{$pbNumber}/fader", max(0.0, min(1.0, $level)));
+        $this->SendOSCFloat("/pb/{$pbNumber}", max(0.0, min(1.0, $level)));
     }
 
     public function SetHeadIntensity(int $headId, float $percent): void
