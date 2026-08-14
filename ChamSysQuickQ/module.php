@@ -67,8 +67,8 @@ class ChamSysQuickQ extends IPSModuleStrict
                     'ICON' => 'Clock',
                     'SUFFIX' => 's',
                     'MINVALUE' => 0,
-                    'MAXVALUE' => 30,
-                    'STEP' => 0.5
+                    'MAXVALUE' => 5,
+                    'STEP' => 0.1
                 ], $basePos + 1);
                 $this->EnableAction($identFadeTime);
 
