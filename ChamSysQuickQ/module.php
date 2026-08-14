@@ -82,6 +82,24 @@ class ChamSysQuickQ extends IPSModuleStrict
             }
         }
 
+        // Legacy-Variablen bereinigen (aus alter Version)
+        $legacyVars = ['MasterIntensity'];
+        foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
+            $obj = IPS_GetObject($childID);
+            if ($obj['ObjectType'] === 2) { // Variable
+                $ident = $obj['ObjectIdent'];
+                if (in_array($ident, $legacyVars)
+                    || str_starts_with($ident, 'Head_Intensity_')
+                    || str_starts_with($ident, 'Playback_Intensity_')
+                    || str_starts_with($ident, 'Playback_Go_')
+                    || str_starts_with($ident, 'Playback_Release_')
+                ) {
+                    $this->SendDebug('Cleanup', "Lösche Legacy-Variable: $ident", 0);
+                    $this->UnregisterVariable($ident);
+                }
+            }
+        }
+
         // Legacy-Profile bereinigen
         foreach (['CQQ.Intensity', 'CQQ.Switch', 'CQQ.Action'] as $profile) {
             if (IPS_VariableProfileExists($profile)) {
