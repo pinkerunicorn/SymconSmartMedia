@@ -168,7 +168,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->DA_ResetWatchdog(300);
 
         $data = json_decode($JSONString);
-        $buffer = mb_convert_encoding($data->Buffer, 'ISO-8859-1', 'UTF-8');
+        $buffer = hex2bin($data->Buffer);
 
         $address = strtok($buffer, "\0");
         $this->SendDebug('OSC Empfangen', $address, 0);
@@ -191,12 +191,15 @@ class ChamSysQuickQ extends IPSModuleStrict
         // OSC Float Value (Big-Endian 32-bit)
         $buf .= pack("G", $value);
 
+        $this->SendDebug('OSC Senden', $address . ' = ' . $value, 0);
+
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([
                 'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}',
-                'Buffer' => mb_convert_encoding($buf, 'UTF-8', 'ISO-8859-1')
+                'Buffer' => bin2hex($buf)
             ]));
         }
     }
 
 }
+
