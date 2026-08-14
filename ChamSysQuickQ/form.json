@@ -1,6 +1,10 @@
 {
     "elements": [
         {
+            "type": "Label",
+            "caption": "Trage hier die Playbacks ein, die du aus Symcon heraus steuern möchtest. Die ID muss der Playback-Nummer auf dem QuickQ entsprechen."
+        },
+        {
             "type": "List",
             "name": "Playbacks",
             "caption": "Playbacks",
@@ -9,8 +13,8 @@
             "columns": [
                 {
                     "name": "ID",
-                    "caption": "Playback ID (z.B. 1)",
-                    "width": "100px",
+                    "caption": "Playback Nr.",
+                    "width": "120px",
                     "add": 1,
                     "edit": { "type": "NumberSpinner" }
                 },
@@ -24,46 +28,48 @@
             ]
         },
         {
-            "type": "List",
-            "name": "Heads",
-            "caption": "Lampen (Heads)",
-            "add": true,
-            "delete": true,
-            "columns": [
-                {
-                    "name": "ID",
-                    "caption": "Head ID (Patch)",
-                    "width": "100px",
-                    "add": 1,
-                    "edit": { "type": "NumberSpinner" }
-                },
-                {
-                    "name": "Name",
-                    "caption": "Name",
-                    "width": "auto",
-                    "add": "Lampe",
-                    "edit": { "type": "ValidationTextBox" }
-                }
-            ]
+            "type": "Label",
+            "caption": "Wichtig: Der UDP Socket muss auf Sende-Port 8000 und Empfangs-Port 9000 konfiguriert sein."
         }
     ],
     "actions": [
         {
-            "type": "TestCenter",
-            "environment": "OSC"
+            "type": "Label",
+            "caption": "Teste die Verbindung zum QuickQ, indem du einen Playback-Go-Befehl sendest."
         },
         {
-            "type": "Button",
-            "label": "TestConnection",
-            "onClick": "echo 'OK';"
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "NumberSpinner",
+                    "name": "TestPlayback",
+                    "caption": "Playback Nr.",
+                    "minimum": 1,
+                    "maximum": 40,
+                    "width": "200px"
+                },
+                {
+                    "type": "Button",
+                    "label": "Go senden",
+                    "onClick": "CQQ_PlaybackGo($id, $TestPlayback);"
+                },
+                {
+                    "type": "Button",
+                    "label": "Fader auf 100%",
+                    "onClick": "CQQ_SetPlaybackFader($id, $TestPlayback, 1.0);"
+                },
+                {
+                    "type": "Button",
+                    "label": "Fader auf 0%",
+                    "onClick": "CQQ_SetPlaybackFader($id, $TestPlayback, 0.0);"
+                }
+            ]
         }
     ],
     "status": [
         { "code": 102, "icon": "active", "caption": "Verbunden" },
         { "code": 104, "icon": "inactive", "caption": "Host nicht konfiguriert" },
         { "code": 201, "icon": "inactive", "caption": "Gerät antwortet nicht" },
-        { "code": 202, "icon": "inactive", "caption": "Verbindungsfehler" },
-        { "code": 203, "icon": "inactive", "caption": "Timeout" },
         { "code": 204, "icon": "inactive", "caption": "Offline" }
     ]
 }

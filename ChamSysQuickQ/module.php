@@ -16,21 +16,9 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         // Properties
         $this->RegisterPropertyString('Playbacks', '[]');
-        $this->RegisterPropertyString('Heads', '[]');
-        
+
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
-
-        // Master Variable
-        $this->RegisterVariableFloat('MasterIntensity', 'Master Fader', [
-            'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-            'ICON' => 'Sun',
-            'SUFFIX' => '%',
-            'MINVALUE' => 0,
-            'MAXVALUE' => 100,
-            'STEP' => 1
-        ], 0);
-        $this->EnableAction('MasterIntensity');
     }
 
     public function GetCompatibleParents(): string
@@ -50,77 +38,56 @@ class ChamSysQuickQ extends IPSModuleStrict
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
 
-        // Playbacks
+        // Playbacks dynamisch anlegen
         $playbacks = json_decode($this->ReadPropertyString('Playbacks'), true);
         if (is_array($playbacks)) {
-            foreach ($playbacks as $playback) {
+            foreach ($playbacks as $index => $playback) {
                 $id = $playback['ID'];
                 $name = $playback['Name'];
+                $basePos = 10 + ($index * 10);
 
-                $identIntensity = 'Playback_Intensity_' . $id;
-                $this->RegisterVariableFloat($identIntensity, $name . ' Fader', [
+                // Fader (0-100%)
+                $identFader = 'PB_Fader_' . $id;
+                $this->RegisterVariableFloat($identFader, $name . ' Fader', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-                    'ICON' => 'Sun',
+                    'ICON' => 'Intensity',
                     'SUFFIX' => '%',
                     'MINVALUE' => 0,
                     'MAXVALUE' => 100,
                     'STEP' => 1
-                ], 10);
-                $this->EnableAction($identIntensity);
+                ], $basePos);
+                $this->EnableAction($identFader);
 
-                $identGo = 'Playback_Go_' . $id;
+                // Go Button
+                $identGo = 'PB_Go_' . $id;
                 $this->RegisterVariableInteger($identGo, $name . ' Go', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
                     'ICON' => 'Execute',
                     'OPTIONS' => json_encode([
-                        ['Value' => 1, 'Caption' => 'GO', 'IconActive' => false, 'IconValue' => '', 'Color' => 0x00FF00]
+                        ['Value' => 1, 'Caption' => 'GO', 'IconActive' => true, 'IconValue' => 'Execute', 'Color' => 0x00CC00]
                     ])
-                ], 11);
+                ], $basePos + 1);
                 $this->EnableAction($identGo);
-                
-                $identRelease = 'Playback_Release_' . $id;
-                $this->RegisterVariableInteger($identRelease, $name . ' Release', [
+
+                // Flash Button
+                $identFlash = 'PB_Flash_' . $id;
+                $this->RegisterVariableInteger($identFlash, $name . ' Flash', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-                    'ICON' => 'Execute',
+                    'ICON' => 'Electricity',
                     'OPTIONS' => json_encode([
-                        ['Value' => 1, 'Caption' => 'RELEASE', 'IconActive' => false, 'IconValue' => '', 'Color' => 0x00FF00]
+                        ['Value' => 1, 'Caption' => 'FLASH', 'IconActive' => true, 'IconValue' => 'Electricity', 'Color' => 0xFFAA00]
                     ])
-                ], 12);
-                $this->EnableAction($identRelease);
-            }
-        }
-
-        // Heads
-        $heads = json_decode($this->ReadPropertyString('Heads'), true);
-        if (is_array($heads)) {
-            foreach ($heads as $head) {
-                $id = $head['ID'];
-                $name = $head['Name'];
-
-                $ident = 'Head_Intensity_' . $id;
-                $this->RegisterVariableFloat($ident, $name . ' Intensität', [
-                    'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-                    'ICON' => 'Sun',
-                    'SUFFIX' => '%',
-                    'MINVALUE' => 0,
-                    'MAXVALUE' => 100,
-                    'STEP' => 1
-                ], 20);
-                $this->EnableAction($ident);
+                ], $basePos + 2);
+                $this->EnableAction($identFlash);
             }
         }
 
         // Legacy-Profile bereinigen
-        if (IPS_VariableProfileExists('CQQ.Intensity')) {
-            IPS_DeleteVariableProfile('CQQ.Intensity');
+        foreach (['CQQ.Intensity', 'CQQ.Switch', 'CQQ.Action'] as $profile) {
+            if (IPS_VariableProfileExists($profile)) {
+                IPS_DeleteVariableProfile($profile);
+            }
         }
-        if (IPS_VariableProfileExists('CQQ.Switch')) {
-            IPS_DeleteVariableProfile('CQQ.Switch');
-        }
-        if (IPS_VariableProfileExists('CQQ.Action')) {
-            IPS_DeleteVariableProfile('CQQ.Action');
-        }
-
     }
 
     public function RequestAction(string $Ident, mixed $Value): void
@@ -130,49 +97,44 @@ class ChamSysQuickQ extends IPSModuleStrict
             return;
         }
 
-        if ($Ident === 'MasterIntensity') {
+        // Fader: /pb/<id> float 0.0-1.0
+        if (str_starts_with($Ident, 'PB_Fader_')) {
+            $id = (int)str_replace('PB_Fader_', '', $Ident);
             $this->SetValue($Ident, $Value);
-            $this->SendOSCFloat('/grand/fader', max(0.0, min(1.0, $Value / 100.0)));
+            $this->SendOSCFloat("/pb/{$id}", max(0.0, min(1.0, (float)$Value / 100.0)));
+            $this->SendDebug('Playback Fader', "PB {$id} -> " . round((float)$Value, 1) . '%', 0);
             return;
         }
 
-        if (strpos($Ident, 'Playback_Intensity_') === 0) {
-            $id = (int)str_replace('Playback_Intensity_', '', $Ident);
-            $this->SetValue($Ident, $Value);
-            $this->SendOSCFloat("/pb/{$id}", max(0.0, min(1.0, $Value / 100.0)));
+        // Go: /pb/<id>/go float 1.0
+        if (str_starts_with($Ident, 'PB_Go_')) {
+            $id = (int)str_replace('PB_Go_', '', $Ident);
+            $this->SendOSCFloat("/pb/{$id}/go", 1.0);
+            $this->SendDebug('Playback Go', "PB {$id}", 0);
             return;
         }
 
-        if (strpos($Ident, 'Playback_Go_') === 0) {
-            $id = (int)str_replace('Playback_Go_', '', $Ident);
-            $this->SendOSCTrigger("/pb/{$id}/go");
+        // Flash: /pb/<id>/flash float 1.0
+        if (str_starts_with($Ident, 'PB_Flash_')) {
+            $id = (int)str_replace('PB_Flash_', '', $Ident);
+            $this->SendOSCFloat("/pb/{$id}/flash", 1.0);
+            $this->SendDebug('Playback Flash', "PB {$id}", 0);
             return;
         }
 
-        if (strpos($Ident, 'Playback_Release_') === 0) {
-            $id = (int)str_replace('Playback_Release_', '', $Ident);
-            $this->SendOSCTrigger("/pb/{$id}/release");
-            return;
-        }
-
-        if (strpos($Ident, 'Head_Intensity_') === 0) {
-            $id = (int)str_replace('Head_Intensity_', '', $Ident);
-            $this->SetValue($Ident, $Value);
-            $this->SendOSCFloat("/head/{$id}/intensity", max(0.0, min(1.0, $Value / 100.0)));
-            return;
-        }
-
-        $this->SLogError("Unknown RequestAction Ident: $Ident");
+        $this->SLogError("Unbekannte Aktion: $Ident");
     }
+
+    // --- Öffentliche Funktionen für Skript-Zugriff ---
 
     public function PlaybackGo(int $pbNumber): void
     {
-        $this->SendOSCTrigger("/pb/{$pbNumber}/go");
+        $this->SendOSCFloat("/pb/{$pbNumber}/go", 1.0);
     }
 
-    public function PlaybackRelease(int $pbNumber): void
+    public function PlaybackFlash(int $pbNumber): void
     {
-        $this->SendOSCTrigger("/pb/{$pbNumber}/release");
+        $this->SendOSCFloat("/pb/{$pbNumber}/flash", 1.0);
     }
 
     public function SetPlaybackFader(int $pbNumber, float $level): void
@@ -180,62 +142,40 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->SendOSCFloat("/pb/{$pbNumber}", max(0.0, min(1.0, $level)));
     }
 
-    public function SetHeadIntensity(int $headId, float $percent): void
-    {
-        $this->SendOSCFloat("/head/{$headId}/intensity", max(0.0, min(1.0, $percent / 100.0)));
-    }
-
-    public function SetHeadColorRGB(int $headId, int $r, int $g, int $b): void
-    {
-        $rFloat = max(0.0, min(1.0, $r / 255.0));
-        $gFloat = max(0.0, min(1.0, $g / 255.0));
-        $bFloat = max(0.0, min(1.0, $b / 255.0));
-        
-        $this->SendOSCFloat("/head/{$headId}/col/r", $rFloat);
-        $this->SendOSCFloat("/head/{$headId}/col/g", $gFloat);
-        $this->SendOSCFloat("/head/{$headId}/col/b", $bFloat);
-    }
+    // --- Empfang vom Pult ---
 
     public function ReceiveData(string $JSONString): string
     {
         $this->DA_SetAvailable(true);
         $this->DA_ResetWatchdog(300);
-        
+
         $data = json_decode($JSONString);
         $buffer = mb_convert_encoding($data->Buffer, 'ISO-8859-1', 'UTF-8');
-        
+
         $address = strtok($buffer, "\0");
-        $this->SLogInfo("Received OSC from QuickQ: $address");
-        
+        $this->SendDebug('OSC Empfangen', $address, 0);
+        $this->SLogInfo("OSC vom QuickQ: $address");
+
         return "";
     }
 
+    // --- OSC Encoding ---
+
     private function SendOSCFloat(string $address, float $value): void
     {
+        // OSC Address (null-terminated, padded to 4-byte boundary)
         $buf = $address . "\0";
         while (strlen($buf) % 4 !== 0) { $buf .= "\0"; }
-        
-        $buf .= ",f\0\0";
-        $buf .= pack("G", $value); // Big-Endian 32-bit Float
-        
-        if ($this->HasActiveParent()) {
-            $this->SendDataToParent(json_encode([
-                'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', // I/O TX GUID
-                'Buffer' => mb_convert_encoding($buf, 'UTF-8', 'ISO-8859-1')
-            ]));
-        }
-    }
 
-    private function SendOSCTrigger(string $address): void
-    {
-        $buf = $address . "\0";
-        while (strlen($buf) % 4 !== 0) { $buf .= "\0"; }
-        
-        $buf .= ",\0\0\0"; 
-        
+        // OSC Type Tag (float)
+        $buf .= ",f\0\0";
+
+        // OSC Float Value (Big-Endian 32-bit)
+        $buf .= pack("G", $value);
+
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([
-                'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', // I/O TX GUID
+                'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}',
                 'Buffer' => mb_convert_encoding($buf, 'UTF-8', 'ISO-8859-1')
             ]));
         }
