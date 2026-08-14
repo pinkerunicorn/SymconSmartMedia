@@ -66,6 +66,8 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->RegisterVariableString('AudioTypeIn', 'Audio Type In', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 7);
         $this->RegisterVariableString('AudioTypeOut', 'Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 8);
 
+        $this->RegisterTimer('UpdatePolling', 0, 'LYNG_UpdateData($_IPS[\'TARGET\']);');
+
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
     }
@@ -81,7 +83,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         }
 
         // Regelmäßiges Polling (alle 30 Sekunden) als Fallback
-        $this->RegisterTimer('UpdatePolling', 30000, 'LYNG_UpdateData($_IPS[\'TARGET\']);');
+        $this->SetTimerInterval('UpdatePolling', 30000);
 
         $this->RestoreDynamicPresentation('Source', '🎵 Quelle', 4, 'SourceMap', 'TV');
         $this->RestoreDynamicPresentation('AudioMode', '🎛 Audio Mode', 5, 'AudioModeMap', 'Sound');
