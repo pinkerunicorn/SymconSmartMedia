@@ -10,6 +10,8 @@ class ChamSysQuickQ extends IPSModuleStrict
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
 
+    private const FADE_INTERVAL_MS = 50; // Timer-Intervall in ms
+
     public function Create(): void
     {
         parent::Create();
@@ -58,6 +60,29 @@ class ChamSysQuickQ extends IPSModuleStrict
                 ], $basePos);
                 $this->EnableAction($identFader);
 
+                // Fade-Zeit (0-30 Sekunden)
+                $identFadeTime = 'PB_FadeTime_' . $id;
+                $this->RegisterVariableFloat($identFadeTime, $name . ' Fadezeit', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+                    'ICON' => 'Clock',
+                    'SUFFIX' => 's',
+                    'MINVALUE' => 0,
+                    'MAXVALUE' => 30,
+                    'STEP' => 0.5
+                ], $basePos + 1);
+                $this->EnableAction($identFadeTime);
+
+                // Fade-Button
+                $identFade = 'PB_Fade_' . $id;
+                $this->RegisterVariableInteger($identFade, $name . ' Fade starten', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+                    'ICON' => 'Rocket',
+                    'OPTIONS' => json_encode([
+                        ['Value' => 1, 'Caption' => 'FADE', 'IconActive' => true, 'IconValue' => 'Rocket', 'Color' => 0x3399FF]
+                    ])
+                ], $basePos + 2);
+                $this->EnableAction($identFade);
+
                 // Go Button
                 $identGo = 'PB_Go_' . $id;
                 $this->RegisterVariableInteger($identGo, $name . ' Go', [
@@ -66,7 +91,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     'OPTIONS' => json_encode([
                         ['Value' => 1, 'Caption' => 'GO', 'IconActive' => true, 'IconValue' => 'Execute', 'Color' => 0x00CC00]
                     ])
-                ], $basePos + 1);
+                ], $basePos + 3);
                 $this->EnableAction($identGo);
 
                 // Flash Button
@@ -77,8 +102,11 @@ class ChamSysQuickQ extends IPSModuleStrict
                     'OPTIONS' => json_encode([
                         ['Value' => 1, 'Caption' => 'FLASH', 'IconActive' => true, 'IconValue' => 'Electricity', 'Color' => 0xFFAA00]
                     ])
-                ], $basePos + 2);
+                ], $basePos + 4);
                 $this->EnableAction($identFlash);
+
+                // Fade-Timer registrieren (initial deaktiviert)
+                $this->RegisterTimer('FadeTimer_' . $id, 0, 'CQQ_FadeTick($_IPS[\'TARGET\'], ' . $id . ');');
             }
         }
 
@@ -115,32 +143,114 @@ class ChamSysQuickQ extends IPSModuleStrict
             return;
         }
 
-        // Fader: /pb/<id> float 0.0-1.0
+        // Fader: Sofort setzen
         if (str_starts_with($Ident, 'PB_Fader_')) {
             $id = (int)str_replace('PB_Fader_', '', $Ident);
             $this->SetValue($Ident, $Value);
             $this->SendOSCFloat("/pb/{$id}", max(0.0, min(1.0, (float)$Value / 100.0)));
-            $this->SendDebug('Playback Fader', "PB {$id} -> " . round((float)$Value, 1) . '%', 0);
             return;
         }
 
-        // Go: /pb/<id>/go float 1.0
+        // Fade-Zeit: Nur Wert speichern
+        if (str_starts_with($Ident, 'PB_FadeTime_')) {
+            $this->SetValue($Ident, $Value);
+            return;
+        }
+
+        // Fade starten
+        if (str_starts_with($Ident, 'PB_Fade_')) {
+            $id = (int)str_replace('PB_Fade_', '', $Ident);
+            $this->StartFade($id);
+            return;
+        }
+
+        // Go
         if (str_starts_with($Ident, 'PB_Go_')) {
             $id = (int)str_replace('PB_Go_', '', $Ident);
             $this->SendOSCFloat("/pb/{$id}/go", 1.0);
-            $this->SendDebug('Playback Go', "PB {$id}", 0);
             return;
         }
 
-        // Flash: /pb/<id>/flash float 1.0
+        // Flash
         if (str_starts_with($Ident, 'PB_Flash_')) {
             $id = (int)str_replace('PB_Flash_', '', $Ident);
             $this->SendOSCFloat("/pb/{$id}/flash", 1.0);
-            $this->SendDebug('Playback Flash', "PB {$id}", 0);
             return;
         }
 
         $this->SLogError("Unbekannte Aktion: $Ident");
+    }
+
+    // --- Fade-Logik ---
+
+    private function StartFade(int $pbId): void
+    {
+        $fadeTime = $this->GetValue('PB_FadeTime_' . $pbId);
+        $targetValue = $this->GetValue('PB_Fader_' . $pbId);
+
+        if ($fadeTime <= 0) {
+            // Kein Fade, sofort setzen
+            $this->SendOSCFloat("/pb/{$pbId}", max(0.0, min(1.0, $targetValue / 100.0)));
+            $this->SendDebug('Fade', "PB {$pbId} -> {$targetValue}% (sofort)", 0);
+            return;
+        }
+
+        // Aktuellen Ist-Wert vom Pult holen (= letzter gesendeter Wert)
+        // Wir lesen den Buffer, falls ein Fade schon läuft, nehmen wir den aktuellen Zwischenstand
+        $fadeState = json_decode($this->GetBuffer('FadeState_' . $pbId), true);
+        if (is_array($fadeState) && isset($fadeState['current'])) {
+            $startValue = $fadeState['current'];
+        } else {
+            // Kein laufender Fade - wir starten bei 0 wenn der Fader auf einen Wert gesetzt ist
+            $startValue = 0.0;
+        }
+
+        $totalSteps = max(1, (int)round($fadeTime * 1000 / self::FADE_INTERVAL_MS));
+
+        $fadeState = [
+            'pbId' => $pbId,
+            'start' => $startValue,
+            'target' => $targetValue,
+            'current' => $startValue,
+            'step' => 0,
+            'totalSteps' => $totalSteps
+        ];
+
+        $this->SetBuffer('FadeState_' . $pbId, json_encode($fadeState));
+        $this->SetTimerInterval('FadeTimer_' . $pbId, self::FADE_INTERVAL_MS);
+
+        $this->SendDebug('Fade', "PB {$pbId}: {$startValue}% -> {$targetValue}% in {$fadeTime}s ({$totalSteps} Schritte)", 0);
+    }
+
+    public function FadeTick(int $pbId): void
+    {
+        $fadeState = json_decode($this->GetBuffer('FadeState_' . $pbId), true);
+        if (!is_array($fadeState)) {
+            $this->SetTimerInterval('FadeTimer_' . $pbId, 0);
+            return;
+        }
+
+        $fadeState['step']++;
+        $progress = min(1.0, $fadeState['step'] / $fadeState['totalSteps']);
+
+        // Lineare Interpolation
+        $currentValue = $fadeState['start'] + ($fadeState['target'] - $fadeState['start']) * $progress;
+        $fadeState['current'] = $currentValue;
+
+        // An Pult senden
+        $this->SendOSCFloat("/pb/{$pbId}", max(0.0, min(1.0, $currentValue / 100.0)));
+
+        // Fader-Variable im WebFront live mitziehen
+        $this->SetValue('PB_Fader_' . $pbId, round($currentValue, 1));
+
+        if ($progress >= 1.0) {
+            // Fade fertig
+            $this->SetTimerInterval('FadeTimer_' . $pbId, 0);
+            $this->SetBuffer('FadeState_' . $pbId, '');
+            $this->SendDebug('Fade', "PB {$pbId}: Fertig bei {$currentValue}%", 0);
+        } else {
+            $this->SetBuffer('FadeState_' . $pbId, json_encode($fadeState));
+        }
     }
 
     // --- Öffentliche Funktionen für Skript-Zugriff ---
@@ -160,6 +270,13 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->SendOSCFloat("/pb/{$pbNumber}", max(0.0, min(1.0, $level)));
     }
 
+    public function FadePlayback(int $pbNumber, float $targetPercent, float $fadeTimeSec): void
+    {
+        $this->SetValue('PB_Fader_' . $pbNumber, $targetPercent);
+        $this->SetValue('PB_FadeTime_' . $pbNumber, $fadeTimeSec);
+        $this->StartFade($pbNumber);
+    }
+
     // --- Empfang vom Pult ---
 
     public function ReceiveData(string $JSONString): string
@@ -172,7 +289,6 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         $address = strtok($buffer, "\0");
         $this->SendDebug('OSC Empfangen', $address, 0);
-        $this->SLogInfo("OSC vom QuickQ: $address");
 
         return "";
     }
@@ -191,8 +307,6 @@ class ChamSysQuickQ extends IPSModuleStrict
         // OSC Float Value (Big-Endian 32-bit)
         $buf .= pack("G", $value);
 
-        $this->SendDebug('OSC Senden', $address . ' = ' . $value, 0);
-
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([
                 'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}',
@@ -202,4 +316,3 @@ class ChamSysQuickQ extends IPSModuleStrict
     }
 
 }
-
