@@ -16,9 +16,13 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         // Properties
         $this->RegisterPropertyString('Playbacks', '[]');
+        $this->RegisterPropertyString('Heads', '[]');
 
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
+
+        // Zentraler Shot-Timer für alle Playbacks (ausschließlich in Create registrieren!)
+        $this->RegisterTimer('ShotTimer', 0, 'CQQ_ShotTimerTick($_IPS[\'TARGET\']);');
     }
 
     public function GetCompatibleParents(): string
@@ -103,27 +107,44 @@ class ChamSysQuickQ extends IPSModuleStrict
                     ])
                 ], $basePos + 4);
                 $this->EnableAction($identFlash);
-
-                // Shot-Timer (für Haltezeit, initial deaktiviert)
-                $this->RegisterTimer('ShotTimer_' . $id, 0, 'CQQ_ShotEnd($_IPS[\'TARGET\'], ' . $id . ');');
             }
         }
 
-        // Legacy-Variablen bereinigen (aus alter Version)
+        // Heads (Lampen) dynamisch anlegen
+        $heads = json_decode($this->ReadPropertyString('Heads'), true);
+        if (is_array($heads)) {
+            foreach ($heads as $index => $head) {
+                $id = $head['ID'];
+                $name = $head['Name'];
+                $basePos = 200 + ($index * 10);
+
+                $ident = 'Head_Intensity_' . $id;
+                $this->RegisterVariableFloat($ident, $name . ' Intensitaet', [
+                    'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+                    'ICON' => 'Sun',
+                    'SUFFIX' => '%',
+                    'MINVALUE' => 0,
+                    'MAXVALUE' => 100,
+                    'STEP' => 1
+                ], $basePos);
+                $this->EnableAction($ident);
+            }
+        }
+
+        // Legacy-Variablen bereinigen (aus alten Alpha-Versionen)
         $legacyVars = ['MasterIntensity'];
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
             $obj = IPS_GetObject($childID);
             if ($obj['ObjectType'] === 2) { // Variable
                 $ident = $obj['ObjectIdent'];
                 if (in_array($ident, $legacyVars)
-                    || str_starts_with($ident, 'Head_Intensity_')
                     || str_starts_with($ident, 'Playback_Intensity_')
                     || str_starts_with($ident, 'Playback_Go_')
                     || str_starts_with($ident, 'Playback_Release_')
                     || str_starts_with($ident, 'PB_Fade_')
                     || str_starts_with($ident, 'PB_FadeTime_')
                 ) {
-                    $this->SendDebug('Cleanup', "Lösche Legacy-Variable: $ident (ID: $childID)", 0);
+                    $this->SendDebug('Cleanup', "Loesche Legacy-Variable: $ident (ID: $childID)", 0);
                     IPS_DeleteVariable($childID);
                 }
             }
@@ -171,22 +192,30 @@ class ChamSysQuickQ extends IPSModuleStrict
             return;
         }
 
-        // Flash: Shot-Effekt (Effektwert setzen → Haltezeit warten → zurück auf 0%)
+        // Flash: Shot-Effekt (Effektwert setzen -> Haltezeit warten -> zurück auf 0%)
         if (str_starts_with($Ident, 'PB_Flash_')) {
             $id = (int)str_replace('PB_Flash_', '', $Ident);
             $this->StartShot($id);
             return;
         }
 
+        // Head Intensity
+        if (str_starts_with($Ident, 'Head_Intensity_')) {
+            $id = (int)str_replace('Head_Intensity_', '', $Ident);
+            $this->SetValue($Ident, $Value);
+            $this->SendOSCFloat("/head/{$id}/intensity", max(0.0, min(1.0, (float)$Value / 100.0)));
+            return;
+        }
+
         $this->SLogError("Unbekannte Aktion: $Ident");
     }
 
-    // --- Shot-Logik (Flash mit Haltezeit) ---
+    // --- Shot-Logik (Flash mit Haltezeit via zentralem ShotTimer) ---
 
     private function StartShot(int $pbId): void
     {
-        $effectValue = $this->GetValue('PB_Effect_' . $pbId);
-        $holdTime = $this->GetValue('PB_HoldTime_' . $pbId);
+        $effectValue = (float)$this->GetValue('PB_Effect_' . $pbId);
+        $holdTime = (float)$this->GetValue('PB_HoldTime_' . $pbId);
 
         // Sofort auf Effektwert setzen
         $this->SendOSCFloat("/pb/{$pbId}", max(0.0, min(1.0, $effectValue / 100.0)));
@@ -194,24 +223,72 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->SendDebug('Shot', "PB {$pbId}: ON bei {$effectValue}% (Haltezeit: {$holdTime}s)", 0);
 
         if ($holdTime <= 0) {
-            // Keine Haltezeit → bleibt auf dem Wert stehen
+            // Keine Haltezeit -> bleibt auf dem Wert stehen
             return;
         }
 
-        // Timer starten: nach Haltezeit auf 0% zurücksetzen
-        $holdTimeMs = max(1, (int)round($holdTime * 1000));
-        $this->SetTimerInterval('ShotTimer_' . $pbId, $holdTimeMs);
+        // In die Liste aktiver Shots eintragen
+        $activeShots = json_decode($this->GetBuffer('ActiveShots'), true);
+        if (!is_array($activeShots)) {
+            $activeShots = [];
+        }
+
+        $activeShots[(string)$pbId] = microtime(true) + $holdTime;
+        $this->SetBuffer('ActiveShots', json_encode($activeShots));
+
+        // Zentralen Timer mit 50ms Intervall aktivieren
+        $this->SetTimerInterval('ShotTimer', 50);
+    }
+
+    public function ShotTimerTick(): void
+    {
+        $activeShots = json_decode($this->GetBuffer('ActiveShots'), true);
+        if (!is_array($activeShots) || empty($activeShots)) {
+            $this->SetTimerInterval('ShotTimer', 0);
+            return;
+        }
+
+        $now = microtime(true);
+        $remainingShots = [];
+
+        foreach ($activeShots as $pbIdStr => $endTime) {
+            $pbId = (int)$pbIdStr;
+            if ($now >= $endTime) {
+                // Playback auf 0% zurücksetzen
+                $this->SendOSCFloat("/pb/{$pbId}", 0.0);
+                if (@$this->GetIDForIdent('PB_Fader_' . $pbId)) {
+                    $this->SetValue('PB_Fader_' . $pbId, 0.0);
+                }
+                $this->SendDebug('Shot', "PB {$pbId}: OFF (Haltezeit abgelaufen)", 0);
+            } else {
+                $remainingShots[$pbIdStr] = $endTime;
+            }
+        }
+
+        $this->SetBuffer('ActiveShots', json_encode($remainingShots));
+
+        if (empty($remainingShots)) {
+            $this->SetTimerInterval('ShotTimer', 0);
+        }
     }
 
     public function ShotEnd(int $pbId): void
     {
-        // Timer deaktivieren (einmalig)
-        $this->SetTimerInterval('ShotTimer_' . $pbId, 0);
+        $activeShots = json_decode($this->GetBuffer('ActiveShots'), true);
+        if (is_array($activeShots) && isset($activeShots[(string)$pbId])) {
+            unset($activeShots[(string)$pbId]);
+            $this->SetBuffer('ActiveShots', json_encode($activeShots));
+            if (empty($activeShots)) {
+                $this->SetTimerInterval('ShotTimer', 0);
+            }
+        }
 
         // Playback auf 0% zurücksetzen
         $this->SendOSCFloat("/pb/{$pbId}", 0.0);
-        $this->SetValue('PB_Fader_' . $pbId, 0.0);
-        $this->SendDebug('Shot', "PB {$pbId}: OFF (zurück auf 0%)", 0);
+        if (@$this->GetIDForIdent('PB_Fader_' . $pbId)) {
+            $this->SetValue('PB_Fader_' . $pbId, 0.0);
+        }
+        $this->SendDebug('Shot', "PB {$pbId}: OFF (manuell beendet)", 0);
     }
 
     // --- Öffentliche Funktionen für Skript-Zugriff ---
@@ -229,6 +306,11 @@ class ChamSysQuickQ extends IPSModuleStrict
     public function SetPlaybackFader(int $pbNumber, float $level): void
     {
         $this->SendOSCFloat("/pb/{$pbNumber}", max(0.0, min(1.0, $level)));
+    }
+
+    public function SetHeadIntensity(int $headId, float $percent): void
+    {
+        $this->SendOSCFloat("/head/{$headId}/intensity", max(0.0, min(1.0, $percent / 100.0)));
     }
 
     public function ShotPlayback(int $pbNumber, float $effectPercent, float $holdTimeSec): void

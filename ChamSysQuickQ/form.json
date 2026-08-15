@@ -8,8 +8,14 @@
             "type": "List",
             "name": "Playbacks",
             "caption": "Playbacks",
+            "rowCount": 10,
             "add": true,
             "delete": true,
+            "changeOrder": true,
+            "sort": {
+                "column": "ID",
+                "direction": "ascending"
+            },
             "columns": [
                 {
                     "name": "ID",
@@ -23,6 +29,39 @@
                     "caption": "Name",
                     "width": "auto",
                     "add": "Playback",
+                    "edit": { "type": "ValidationTextBox" }
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "caption": "Lampen (Heads) zur Übersicht und Dokumentation der gepatchten DMX-Geräte."
+        },
+        {
+            "type": "List",
+            "name": "Heads",
+            "caption": "Lampen (Heads)",
+            "rowCount": 10,
+            "add": true,
+            "delete": true,
+            "changeOrder": true,
+            "sort": {
+                "column": "ID",
+                "direction": "ascending"
+            },
+            "columns": [
+                {
+                    "name": "ID",
+                    "caption": "Head ID (Patch)",
+                    "width": "120px",
+                    "add": 1,
+                    "edit": { "type": "NumberSpinner" }
+                },
+                {
+                    "name": "Name",
+                    "caption": "Name",
+                    "width": "auto",
+                    "add": "Lampe",
                     "edit": { "type": "ValidationTextBox" }
                 }
             ]
