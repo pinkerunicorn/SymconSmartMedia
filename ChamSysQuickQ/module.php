@@ -50,7 +50,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $name = $playback['Name'];
                 $basePos = 10 + ($index * 10);
 
-                // Fader (0-100%) – direktes Steuern des Playback-Levels
+                // Fader (0-100%) – direktes Steuern und bidirektionale Rückmeldung
                 $identFader = 'PB_Fader_' . $id;
                 $this->RegisterVariableFloat($identFader, $name . ' Fader', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
@@ -155,6 +155,11 @@ class ChamSysQuickQ extends IPSModuleStrict
             if (IPS_VariableProfileExists($profile)) {
                 IPS_DeleteVariableProfile($profile);
             }
+        }
+
+        // Feedback-Stream vom QuickQ anfordern
+        if ($this->HasActiveParent()) {
+            $this->RequestFeedback();
         }
     }
 
@@ -320,7 +325,15 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->StartShot($pbNumber);
     }
 
-    // --- Empfang vom Pult ---
+    public function RequestFeedback(): void
+    {
+        // Aktiviert das Senden von Statusänderungen (Fader, Tasten) am QuickQ
+        $this->SendOSCCommand('/feedback/pb+exec');
+        $this->SendOSCCommand('/feedback/pb');
+        $this->SendDebug('OSC Feedback', 'Feedback-Stream angefordert (/feedback/pb)', 0);
+    }
+
+    // --- Empfang und Dekodierung vom Pult (Bidirektional) ---
 
     public function ReceiveData(string $JSONString): string
     {
@@ -328,15 +341,148 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->DA_ResetWatchdog(300);
 
         $data = json_decode($JSONString);
-        $buffer = hex2bin($data->Buffer);
+        if (!isset($data->Buffer)) {
+            return "";
+        }
 
-        $address = strtok($buffer, "\0");
-        $this->SendDebug('OSC Empfangen', $address, 0);
+        $buffer = hex2bin($data->Buffer);
+        if ($buffer === false || strlen($buffer) === 0) {
+            return "";
+        }
+
+        $parsed = $this->ParseOSCMessage($buffer);
+        if ($parsed === null) {
+            return "";
+        }
+
+        $address = $parsed['address'];
+        $args = $parsed['args'];
+
+        $this->SendDebug('OSC Empfangen', $address . ' ' . json_encode($args), 0);
+
+        // Feedback für Playback Fader (z.B. /pb/1, /pb/1/fader, /playback/1)
+        if (preg_match('#^/(?:pb|playback)/(\d+)(?:/fader)?$#i', $address, $matches)) {
+            $pbId = (int)$matches[1];
+            $ident = 'PB_Fader_' . $pbId;
+            if (@$this->GetIDForIdent($ident)) {
+                $rawVal = $args[0] ?? 0.0;
+                if (is_float($rawVal) || is_numeric($rawVal)) {
+                    $valFloat = (float)$rawVal;
+                    // Wenn Wert im Bereich 0.0 - 1.0 liegt -> in % (0 - 100) umrechnen
+                    $percent = ($valFloat <= 1.0 && $valFloat >= 0.0) ? round($valFloat * 100.0, 1) : $valFloat;
+                    $currentVal = (float)$this->GetValue($ident);
+                    if (abs($currentVal - $percent) >= 0.1) {
+                        $this->SetValue($ident, $percent);
+                        $this->SendDebug('Feedback Update', "Fader PB {$pbId} aktualisiert auf {$percent}%", 0);
+                    }
+                }
+            }
+        }
+
+        // Feedback für Heads (z.B. /head/1, /head/1/intensity)
+        if (preg_match('#^/head/(\d+)(?:/intensity)?$#i', $address, $matches)) {
+            $headId = (int)$matches[1];
+            $ident = 'Head_Intensity_' . $headId;
+            if (@$this->GetIDForIdent($ident)) {
+                $rawVal = $args[0] ?? 0.0;
+                if (is_float($rawVal) || is_numeric($rawVal)) {
+                    $valFloat = (float)$rawVal;
+                    $percent = ($valFloat <= 1.0 && $valFloat >= 0.0) ? round($valFloat * 100.0, 1) : $valFloat;
+                    $currentVal = (float)$this->GetValue($ident);
+                    if (abs($currentVal - $percent) >= 0.1) {
+                        $this->SetValue($ident, $percent);
+                        $this->SendDebug('Feedback Update', "Head {$headId} aktualisiert auf {$percent}%", 0);
+                    }
+                }
+            }
+        }
 
         return "";
     }
 
-    // --- OSC Encoding ---
+    // --- OSC Binary Parser & Encoder ---
+
+    private function ParseOSCMessage(string $buffer): ?array
+    {
+        $len = strlen($buffer);
+        if ($len < 4) {
+            return null;
+        }
+
+        // 1. OSC Address
+        $nullPos = strpos($buffer, "\0");
+        if ($nullPos === false) {
+            return null;
+        }
+        $address = substr($buffer, 0, $nullPos);
+        $offset = (int)ceil(($nullPos + 1) / 4) * 4;
+
+        if ($offset >= $len) {
+            return ['address' => $address, 'args' => []];
+        }
+
+        // 2. Type Tag String
+        if ($buffer[$offset] !== ',') {
+            return ['address' => $address, 'args' => []];
+        }
+
+        $typeTagNullPos = strpos($buffer, "\0", $offset);
+        if ($typeTagNullPos === false) {
+            return ['address' => $address, 'args' => []];
+        }
+        $typeTag = substr($buffer, $offset, $typeTagNullPos - $offset);
+        $offset = (int)ceil(($typeTagNullPos + 1) / 4) * 4;
+
+        // 3. Arguments
+        $types = str_split(substr($typeTag, 1));
+        $args = [];
+
+        foreach ($types as $type) {
+            if ($offset >= $len) {
+                break;
+            }
+            switch ($type) {
+                case 'f': // 32-bit Float Big Endian
+                    if ($offset + 4 <= $len) {
+                        $raw = substr($buffer, $offset, 4);
+                        $unpacked = unpack('Gval', $raw);
+                        $args[] = $unpacked ? (float)$unpacked['val'] : 0.0;
+                        $offset += 4;
+                    }
+                    break;
+
+                case 'i': // 32-bit Signed Int Big Endian
+                    if ($offset + 4 <= $len) {
+                        $raw = substr($buffer, $offset, 4);
+                        $unpacked = unpack('Nval', $raw);
+                        $val = $unpacked ? (int)$unpacked['val'] : 0;
+                        if ($val >= 0x80000000) {
+                            $val -= 0x100000000;
+                        }
+                        $args[] = $val;
+                        $offset += 4;
+                    }
+                    break;
+
+                case 's': // Null-terminated String
+                    $sNullPos = strpos($buffer, "\0", $offset);
+                    if ($sNullPos !== false) {
+                        $args[] = substr($buffer, $offset, $sNullPos - $offset);
+                        $offset = (int)ceil(($sNullPos + 1) / 4) * 4;
+                    }
+                    break;
+
+                default:
+                    $offset += 4;
+                    break;
+            }
+        }
+
+        return [
+            'address' => $address,
+            'args'    => $args
+        ];
+    }
 
     private function SendOSCFloat(string $address, float $value): void
     {
@@ -349,6 +495,21 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         // OSC Float Value (Big-Endian 32-bit)
         $buf .= pack("G", $value);
+
+        if ($this->HasActiveParent()) {
+            $this->SendDataToParent(json_encode([
+                'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}',
+                'Buffer' => bin2hex($buf)
+            ]));
+        }
+    }
+
+    private function SendOSCCommand(string $address): void
+    {
+        $buf = $address . "\0";
+        while (strlen($buf) % 4 !== 0) { $buf .= "\0"; }
+
+        $buf .= ",\0\0\0";
 
         if ($this->HasActiveParent()) {
             $this->SendDataToParent(json_encode([

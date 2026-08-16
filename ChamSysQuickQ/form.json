@@ -68,13 +68,13 @@
         },
         {
             "type": "Label",
-            "caption": "Wichtig: Der UDP Socket muss auf Sende-Port 8000 und Empfangs-Port 9000 konfiguriert sein."
+            "caption": "Wichtig: Der UDP Socket muss auf Sende-Port 8000 und Empfangs-Port 9000 konfiguriert sein. Im QuickQ muss OSC aktiviert sein und die Symcon-Server-IP als Ziel eingetragen sein."
         }
     ],
     "actions": [
         {
             "type": "Label",
-            "caption": "Teste die Verbindung zum QuickQ, indem du einen Playback-Go-Befehl sendest."
+            "caption": "Testen & Synchronisation:"
         },
         {
             "type": "RowLayout",
@@ -85,7 +85,7 @@
                     "caption": "Playback Nr.",
                     "minimum": 1,
                     "maximum": 40,
-                    "width": "200px"
+                    "width": "160px"
                 },
                 {
                     "type": "Button",
@@ -101,6 +101,11 @@
                     "type": "Button",
                     "label": "Fader auf 0%",
                     "onClick": "CQQ_SetPlaybackFader($id, $TestPlayback, 0.0);"
+                },
+                {
+                    "type": "Button",
+                    "label": "Feedback anfordern (/feedback/pb)",
+                    "onClick": "CQQ_RequestFeedback($id);"
                 }
             ]
         }
