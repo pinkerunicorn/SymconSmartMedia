@@ -120,6 +120,13 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->RestoreDynamicPresentation('Voicing', '🗣 Voicing', 6, 'VoicingMap', 'Speaker');
         $this->RestoreDynamicPresentation('ZoneBSource', 'Zone B Quelle', 53, 'ZoneSourceMap', 'TV');
 
+        // Erzwinge die 0.5 Schrittweite für bereits existierende Profile
+        if (IPS_VariableProfileExists('LyngdorfMP60.Volume')) {
+            IPS_SetVariableProfileValues('LyngdorfMP60.Volume', -99.9, 24.0, 0.5);
+        }
+        if (IPS_VariableProfileExists('LyngdorfMP60.ZoneBVolume')) {
+            IPS_SetVariableProfileValues('LyngdorfMP60.ZoneBVolume', -99.9, 24.0, 0.5);
+        }
     }
 
     private function RestoreDynamicPresentation(string $ident, string $varName, int $position, string $mapName, string $icon): void
