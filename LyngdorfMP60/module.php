@@ -26,13 +26,13 @@ class LyngdorfMP60 extends IPSModuleStrict
         // Variablen registrieren
         $this->RegisterVariableBoolean('Power', 'Power', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SWITCH,
-            'ICON'        => 'Power'
+            'ICON'        => 'power-off'
         ], 1);
         $this->EnableAction('Power');
 
         $this->RegisterVariableFloat('Volume', 'Lautstärke', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SLIDER,
-            'ICON'        => 'Intensity',
+            'ICON'        => 'volume-high',
             'SUFFIX'      => 'dB',
             'MIN'         => -99.9,
             'MAX'         => 24.0,
@@ -42,41 +42,41 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         $this->RegisterVariableBoolean('Mute', 'Mute', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SWITCH,
-            'ICON'        => 'Speaker'
+            'ICON'        => 'volume-xmark'
         ], 3);
         $this->EnableAction('Mute');
 
         $this->RegisterVariableInteger('Source', 'Quelle', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
-            'ICON'        => 'TV'
+            'ICON'        => 'tv'
         ], 4);
         $this->EnableAction('Source');
 
         $this->RegisterVariableInteger('AudioMode', 'Audio Mode', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
-            'ICON'        => 'Sound'
+            'ICON'        => 'wave-square'
         ], 5);
         $this->EnableAction('AudioMode');
 
         $this->RegisterVariableInteger('Voicing', 'Voicing', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_ENUMERATION,
-            'ICON'        => 'Speaker'
+            'ICON'        => 'speaker'
         ], 6);
         $this->EnableAction('Voicing');
 
-        $this->RegisterVariableString('AudioTypeIn', 'Audio Type In', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 7);
-        $this->RegisterVariableString('AudioTypeOut', 'Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 8);
+        $this->RegisterVariableString('AudioTypeIn', 'Audio Type In', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'waveform'], 7);
+        $this->RegisterVariableString('AudioTypeOut', 'Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'waveform'], 8);
 
         // Zone B Variablen
         $this->RegisterVariableBoolean('ZoneBPower', 'Zone B', [
             'PRESENTATION' => VARIABLE_PRESENTATION_SWITCH,
-            'ICON'         => 'Power'
+            'ICON'         => 'power-off'
         ], 50);
         $this->EnableAction('ZoneBPower');
 
         $this->RegisterVariableFloat('ZoneBVolume', 'Zone B Lautstarke', [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-            'ICON'         => 'Intensity',
+            'ICON'         => 'sliders',
             'SUFFIX'       => 'dB',
             'MIN'          => -99.9,
             'MAX'          => 24.0,
@@ -86,13 +86,13 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         $this->RegisterVariableBoolean('ZoneBMute', 'Zone B Mute', [
             'PRESENTATION' => VARIABLE_PRESENTATION_SWITCH,
-            'ICON'         => 'Speaker'
+            'ICON'         => 'volume-xmark'
         ], 52);
         $this->EnableAction('ZoneBMute');
 
         $this->RegisterVariableInteger('ZoneBSource', 'Zone B Quelle', [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-            'ICON'         => 'TV'
+            'ICON'         => 'tv'
         ], 53);
         $this->EnableAction('ZoneBSource');
 

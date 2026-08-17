@@ -28,7 +28,7 @@ class RoonZone extends IPSModuleStrict
         $this->RegisterVariableInteger('State', 'Status', '', 1);
         $this->RegisterVariableInteger('State', 'Status', [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-            'ICON'         => 'Information',
+            'ICON'         => 'info',
             'OPTIONS'      => json_encode([
                 ['Value' => 0, 'Caption' => 'Previous', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
                 ['Value' => 1, 'Caption' => 'Stop', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
@@ -37,12 +37,12 @@ class RoonZone extends IPSModuleStrict
                 ['Value' => 4, 'Caption' => 'Next', 'IconActive' => false, 'IconValue' => '', 'Color' => -1]
             ])
         ], 1);
-        $this->RegisterVariableString('Title', 'Titel', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Melody'], 2);
-        $this->RegisterVariableString('Artist', 'Künstler', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'User'], 3);
-        $this->RegisterVariableString('Album', 'Album', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Database'], 4);
+        $this->RegisterVariableString('Title', 'Titel', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'music'], 2);
+        $this->RegisterVariableString('Artist', 'Künstler', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'user'], 3);
+        $this->RegisterVariableString('Album', 'Album', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'database'], 4);
         $this->RegisterVariableInteger('Volume', 'Lautstärke', [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-            'ICON' => 'Intensity',
+            'ICON' => 'volume-high',
             'MIN'          => 0,
             'MAX'          => 100,
             'STEP'         => 1,

@@ -25,13 +25,13 @@ class Michi extends IPSModuleStrict
         // Variablen registrieren
         $this->RegisterVariableBoolean('Power', 'Power', [
             'PRESENTATION' => VARIABLE_PRESENTATION_SWITCH,
-            'ICON'         => 'Power'
+            'ICON'         => 'power-off'
         ], 10);
         $this->EnableAction('Power');
 
         $this->RegisterVariableInteger('Dimmer', 'Display Helligkeit', [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-            'ICON'         => 'Bulb',
+            'ICON'         => 'lightbulb',
             'MIN'          => 0,
             'MAX'          => 100,
             'STEP'         => 25,
@@ -41,22 +41,22 @@ class Michi extends IPSModuleStrict
 
         $this->RegisterVariableString('Model', 'Modell', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON' => 'Information'
+            'ICON' => 'microchip'
         ], 30);
         
         $this->RegisterVariableString('Version', 'Software Version', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON' => 'Information'
+            'ICON' => 'microchip'
         ], 40);
         
         $this->RegisterVariableString('IP', 'IP-Adresse', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON' => 'Network'
+            'ICON' => 'network-wired'
         ], 50);
         
         $this->RegisterVariableString('MAC', 'MAC-Adresse', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON' => 'Network'
+            'ICON' => 'network-wired'
         ], 60);
 
         $this->DA_RegisterAvailability(900);

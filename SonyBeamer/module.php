@@ -45,7 +45,7 @@ class SonyBeamer extends IPSModuleStrict
         // Variablen registrieren
         $this->RegisterVariableBoolean('Power', 'Status', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_SWITCH,
-            'ICON'        => 'Power'
+            'ICON'        => 'power-off'
         ], 10);
         $this->EnableAction('Power');
 
@@ -61,7 +61,7 @@ class SonyBeamer extends IPSModuleStrict
 
         $this->RegisterVariableInteger('Input', 'Eingang', [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-            'ICON' => 'Plug',
+            'ICON' => 'plug',
             'OPTIONS' => json_encode([
                 ['Value' => 0, 'Caption' => 'HDMI 1', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
                 ['Value' => 1, 'Caption' => 'HDMI 2', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
@@ -73,7 +73,7 @@ class SonyBeamer extends IPSModuleStrict
 
         $this->RegisterVariableInteger('PictureMode', 'Bildmodus', [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-            'ICON' => 'TV',
+            'ICON' => 'tv',
             'OPTIONS' => json_encode([
                 ['Value' => 0, 'Caption' => 'Dynamic', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
                 ['Value' => 1, 'Caption' => 'Standard', 'IconActive' => false, 'IconValue' => '', 'Color' => -1],
@@ -93,17 +93,17 @@ class SonyBeamer extends IPSModuleStrict
 
         $this->RegisterVariableInteger('OperationTime', 'Betriebsstunden', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON'=> 'Clock',
+            'ICON'=> 'stopwatch',
             'SUFFIX'=> 'h'
         ], 40);
         $this->RegisterVariableInteger('LightSourceTime', 'Lampenstunden', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON'=> 'Bulb',
+            'ICON'=> 'lightbulb',
             'SUFFIX'=> 'h'
         ], 50);
         $this->RegisterVariableString('Warning', 'Warnungen', [
             'PRESENTATION'=> VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON'=> 'Warning'
+            'ICON'=> 'triangle-exclamation'
         ], 60);
 
         $this->DA_RegisterAvailability(900);

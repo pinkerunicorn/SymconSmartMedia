@@ -54,7 +54,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $identFader = 'PB_Fader_' . $id;
                 $this->RegisterVariableFloat($identFader, $name . ' Fader', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-                    'ICON' => 'Intensity',
+                    'ICON' => 'sliders',
                     'SUFFIX' => '%',
                     'MINVALUE' => 0,
                     'MAXVALUE' => 100,
@@ -66,7 +66,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $identEffect = 'PB_Effect_' . $id;
                 $this->RegisterVariableFloat($identEffect, $name . ' Effektwert', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-                    'ICON' => 'Fog',
+                    'ICON' => 'smog',
                     'SUFFIX' => '%',
                     'MINVALUE' => 0,
                     'MAXVALUE' => 100,
@@ -78,7 +78,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $identHoldTime = 'PB_HoldTime_' . $id;
                 $this->RegisterVariableFloat($identHoldTime, $name . ' Haltezeit', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-                    'ICON' => 'Clock',
+                    'ICON' => 'clock',
                     'SUFFIX' => 's',
                     'MINVALUE' => 0,
                     'MAXVALUE' => 5,
@@ -90,9 +90,9 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $identGo = 'PB_Go_' . $id;
                 $this->RegisterVariableInteger($identGo, $name . ' Go', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-                    'ICON' => 'Execute',
+                    'ICON' => 'play',
                     'OPTIONS' => json_encode([
-                        ['Value' => 1, 'Caption' => 'GO', 'IconActive' => true, 'IconValue' => 'Execute', 'Color' => 0x00CC00]
+                        ['Value' => 1, 'Caption' => 'GO', 'IconActive' => true, 'IconValue' => 'play', 'Color' => 0x00CC00]
                     ])
                 ], $basePos + 3);
                 $this->EnableAction($identGo);
@@ -101,9 +101,9 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $identFlash = 'PB_Flash_' . $id;
                 $this->RegisterVariableInteger($identFlash, $name . ' Flash', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-                    'ICON' => 'Electricity',
+                    'ICON' => 'bolt',
                     'OPTIONS' => json_encode([
-                        ['Value' => 1, 'Caption' => 'FLASH', 'IconActive' => true, 'IconValue' => 'Electricity', 'Color' => 0xFFAA00]
+                        ['Value' => 1, 'Caption' => 'FLASH', 'IconActive' => true, 'IconValue' => 'bolt', 'Color' => 0xFFAA00]
                     ])
                 ], $basePos + 4);
                 $this->EnableAction($identFlash);
@@ -121,7 +121,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                 $ident = 'Head_Intensity_' . $id;
                 $this->RegisterVariableFloat($ident, $name . ' Intensitaet', [
                     'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-                    'ICON' => 'Sun',
+                    'ICON' => 'sun',
                     'SUFFIX' => '%',
                     'MINVALUE' => 0,
                     'MAXVALUE' => 100,
