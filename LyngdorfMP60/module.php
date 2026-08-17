@@ -15,6 +15,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->RegisterAttributeString('SourceMap', '[]');
         $this->RegisterAttributeString('AudioModeMap', '[]');
         $this->RegisterAttributeString('VoicingMap', '[]');
+        $this->RegisterAttributeString('ZoneSourceMap', '[]');
 
 
         $this->RegisterPropertyBoolean('HideVariablesWhenOff', false);
@@ -66,6 +67,35 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->RegisterVariableString('AudioTypeIn', 'Audio Type In', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 7);
         $this->RegisterVariableString('AudioTypeOut', 'Audio Type Out', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 8);
 
+        // Zone B Variablen
+        $this->RegisterVariableBoolean('ZoneBPower', 'Zone B', [
+            'PRESENTATION' => VARIABLE_PRESENTATION_SWITCH,
+            'ICON'         => 'Power'
+        ], 50);
+        $this->EnableAction('ZoneBPower');
+
+        $this->RegisterVariableFloat('ZoneBVolume', 'Zone B Lautstarke', [
+            'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+            'ICON'         => 'Intensity',
+            'SUFFIX'       => 'dB',
+            'MIN'          => -99.9,
+            'MAX'          => 24.0,
+            'STEP'         => 0.5
+        ], 51);
+        $this->EnableAction('ZoneBVolume');
+
+        $this->RegisterVariableBoolean('ZoneBMute', 'Zone B Mute', [
+            'PRESENTATION' => VARIABLE_PRESENTATION_SWITCH,
+            'ICON'         => 'Speaker'
+        ], 52);
+        $this->EnableAction('ZoneBMute');
+
+        $this->RegisterVariableInteger('ZoneBSource', 'Zone B Quelle', [
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'ICON'         => 'TV'
+        ], 53);
+        $this->EnableAction('ZoneBSource');
+
         $this->RegisterTimer('UpdatePolling', 0, 'LYNG_UpdateData($_IPS[\'TARGET\']);');
 
         $this->DA_RegisterAvailability(900);
@@ -88,6 +118,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->RestoreDynamicPresentation('Source', '🎵 Quelle', 4, 'SourceMap', 'TV');
         $this->RestoreDynamicPresentation('AudioMode', '🎛 Audio Mode', 5, 'AudioModeMap', 'Sound');
         $this->RestoreDynamicPresentation('Voicing', '🗣 Voicing', 6, 'VoicingMap', 'Speaker');
+        $this->RestoreDynamicPresentation('ZoneBSource', 'Zone B Quelle', 53, 'ZoneSourceMap', 'TV');
 
     }
 
@@ -177,6 +208,33 @@ class LyngdorfMP60 extends IPSModuleStrict
             case 'Voicing':
                 $this->SendCommand('!RPVOI('. $Value . ')');
                 break;
+
+            case 'ZoneBPower':
+                if ($Value) {
+                    $this->Log('Zone B: Schalte EIN');
+                    $this->SendCommand('!POWERONZONE2');
+                } else {
+                    $this->Log('Zone B: Schalte AUS');
+                    $this->SendCommand('!POWEROFFZONE2');
+                }
+                break;
+
+            case 'ZoneBVolume':
+                $volInt = (int)round($Value * 10);
+                $this->SendCommand('!ZVOL('. $volInt . ')');
+                break;
+
+            case 'ZoneBMute':
+                if ($Value) {
+                    $this->SendCommand('!ZMUTEON');
+                } else {
+                    $this->SendCommand('!ZMUTEOFF');
+                }
+                break;
+
+            case 'ZoneBSource':
+                $this->SendCommand('!ZSRC('. $Value . ')');
+                break;
         }
     }
 
@@ -225,6 +283,12 @@ class LyngdorfMP60 extends IPSModuleStrict
             $this->SendCommand('!RPVOI?');
             $this->SendCommand('!AUDTYPE?');
             $this->SendCommand('!AUDTYPEOUT?');
+            // Zone B
+            $this->SendCommand('!POWERZONE2?');
+            $this->SendCommand('!ZVOL?');
+            $this->SendCommand('!ZMUTE?');
+            $this->SendCommand('!ZSRCS?');
+            $this->SendCommand('!ZSRC?');
         }
     }
 
@@ -302,6 +366,47 @@ class LyngdorfMP60 extends IPSModuleStrict
         elseif (preg_match('/^AUDTYPEOUT\((.*)\)$/', $command, $matches)) {
             $this->SetValue('AudioTypeOut', $matches[1]);
         }
+        // Zone B Responses
+        elseif (preg_match('/^POWERZONE2\((\d)\)$/', $command, $matches)) {
+            $power = ($matches[1] == '1');
+            if ($this->GetValue('ZoneBPower') !== $power) {
+                $this->Log('Zone B Power = ' . ($power ? 'ON' : 'OFF'));
+            }
+            $this->SetValue('ZoneBPower', $power);
+            $this->UpdateZoneBVisibility($power);
+        }
+        elseif ($command === 'POWERONZONE2') {
+            if (!$this->GetValue('ZoneBPower')) {
+                $this->Log('Zone B Power = ON');
+            }
+            $this->SetValue('ZoneBPower', true);
+            $this->UpdateZoneBVisibility(true);
+        }
+        elseif ($command === 'POWEROFFZONE2') {
+            if ($this->GetValue('ZoneBPower')) {
+                $this->Log('Zone B Power = OFF');
+            }
+            $this->SetValue('ZoneBPower', false);
+            $this->UpdateZoneBVisibility(false);
+        }
+        elseif (preg_match('/^ZVOL\((-?\d+)\)$/', $command, $matches)) {
+            $this->SetValue('ZoneBVolume', floatval($matches[1]) / 10);
+        }
+        elseif ($command === 'ZMUTEON') {
+            $this->SetValue('ZoneBMute', true);
+        }
+        elseif ($command === 'ZMUTEOFF') {
+            $this->SetValue('ZoneBMute', false);
+        }
+        elseif (preg_match('/^ZSRC\((\d+)\)"(.*)"$/', $command, $matches)) {
+            $index = intval($matches[1]);
+            $name = $matches[2];
+            $this->UpdateDynamicProfile('ZoneBSource', 'Zone B Quelle', 53, 'ZoneSourceMap', $index, $name, 'TV');
+            $this->SetValue('ZoneBSource', $index);
+        }
+        elseif (preg_match('/^ZSRC\((\d+)\)$/', $command, $matches)) {
+            $this->SetValue('ZoneBSource', intval($matches[1]));
+        }
     }
 
     private function SendCommand(string $command): void
@@ -338,6 +443,21 @@ class LyngdorfMP60 extends IPSModuleStrict
         $this->SetHiddenSafe('Voicing', $hidden);
         $this->SetHiddenSafe('AudioTypeIn', $hidden);
         $this->SetHiddenSafe('AudioTypeOut', $hidden);
+    }
+
+    private function UpdateZoneBVisibility(bool $powerState): void
+    {
+        if (!$this->ReadPropertyBoolean('HideVariablesWhenOff')) {
+            $this->SetHiddenSafe('ZoneBVolume', false);
+            $this->SetHiddenSafe('ZoneBMute', false);
+            $this->SetHiddenSafe('ZoneBSource', false);
+            return;
+        }
+
+        $hidden = !$powerState;
+        $this->SetHiddenSafe('ZoneBVolume', $hidden);
+        $this->SetHiddenSafe('ZoneBMute', $hidden);
+        $this->SetHiddenSafe('ZoneBSource', $hidden);
     }
 
     private function SetHiddenSafe(string $ident, bool $hidden): void
