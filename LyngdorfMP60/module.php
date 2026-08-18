@@ -135,13 +135,20 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
+
+        $this->DR_Register('DevicesGenericSensor');
+    }
+
+    public function Destroy(): void
+    {
+        parent::Destroy();
+        $this->DR_Unregister();
     }
 
     public function ApplyChanges(): void
     {
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
-        $this->DR_Register('DevicesGenericSensor');
 
         $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ($parentId > 0) {

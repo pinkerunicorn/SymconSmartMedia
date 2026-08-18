@@ -109,12 +109,18 @@ class SonyBeamer extends IPSModuleStrict
         ], 60);
 
         $this->DA_RegisterAvailability(900);
+        $this->DR_Register('DevicesGenericSensor');
+    }
+
+    public function Destroy(): void
+    {
+        parent::Destroy();
+        $this->DR_Unregister();
     }
 
     public function ApplyChanges(): void{
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
-        $this->DR_Register('DevicesGenericSensor');
 
         if (empty($this->ReadPropertyString('Host'))) {
             $this->SetStatus(104);

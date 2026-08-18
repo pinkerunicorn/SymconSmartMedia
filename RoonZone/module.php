@@ -57,6 +57,13 @@ class RoonZone extends IPSModuleStrict
 
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
+        $this->DR_Register('DevicesGenericSensor');
+    }
+
+    public function Destroy(): void
+    {
+        parent::Destroy();
+        $this->DR_Unregister();
     }
 
     public function ApplyChanges(): void
@@ -85,8 +92,6 @@ class RoonZone extends IPSModuleStrict
         IPS_SetVariableCustomProfile($this->GetIDForIdent('State'), '');
 
         $this->DA_ApplyPresentation();
-        $this->DR_Register('DevicesGenericSensor');
-    
     }
 
     public function ReceiveData(string $JSONString): string

@@ -25,6 +25,14 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         // Zentraler Shot-Timer für alle Playbacks (ausschließlich in Create registrieren!)
         $this->RegisterTimer('ShotTimer', 0, 'CQQ_ShotTimerTick($_IPS[\'TARGET\']);');
+
+        $this->DR_Register('DevicesGenericSensor');
+    }
+
+    public function Destroy(): void
+    {
+        parent::Destroy();
+        $this->DR_Unregister();
     }
 
     public function GetCompatibleParents(): string
@@ -43,7 +51,6 @@ class ChamSysQuickQ extends IPSModuleStrict
     {
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
-        $this->DR_Register('DevicesGenericSensor');
 
         // Playbacks dynamisch anlegen
         $playbacks = json_decode($this->ReadPropertyString('Playbacks'), true);
