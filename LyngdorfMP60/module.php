@@ -449,7 +449,6 @@ class LyngdorfMP60 extends IPSModuleStrict
         $command = substr($packet, 1);
 
         $this->SendDebug('Receive', $command, 0);
-        $this->Log('DEBUG RX: ' . $command);
 
         if (preg_match('/^POWER\((\d)\)$/', $command, $matches)) {
             $power = ($matches[1] == '1');
