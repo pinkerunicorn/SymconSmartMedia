@@ -340,12 +340,55 @@ class LyngdorfMP60 extends IPSModuleStrict
     {
         if ($this->HasActiveParent()) {
             $this->Log('Prüfe auf Firmware Update...');
-            // Da das Update-Kommando nicht dokumentiert ist, versuchen wir einige gängige Befehle
-            $this->SendCommand('!SWVER?');
-            $this->SendCommand('!DEVICE?');
-            $this->SendCommand('!UPDATE?');
-            $this->SendCommand('!SWUPDATE?');
-            $this->SendCommand('!SYSINFO?');
+            
+            // Die Lyngdorf MP60 API liefert die Softwareversion nicht über den TCP Port 84,
+            // sondern nur über eine WebSocket-Verbindung auf Port 80.
+            $this->FetchUpdateViaWebsocket();
+        }
+    }
+
+    private function FetchUpdateViaWebsocket(): void
+    {
+        $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if ($parentId == 0) {
+            return;
+        }
+        $host = IPS_GetProperty($parentId, 'Host');
+        if (empty($host)) {
+            return;
+        }
+
+        $fp = @fsockopen($host, 80, $errno, $errstr, 2);
+        if (!$fp) {
+            $this->Log("WebSocket Update-Check fehlgeschlagen: $errstr");
+            return;
+        }
+
+        stream_set_timeout($fp, 2);
+        $key = base64_encode(random_bytes(16));
+        $req = "GET / HTTP/1.1\r\nHost: $host:80\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: $key\r\nSec-WebSocket-Version: 13\r\n\r\n";
+        fwrite($fp, $req);
+
+        $data = '';
+        $t = microtime(true);
+        // Lese für maximal 2 Sekunden oder bis die Daten da sind
+        while (microtime(true) - $t < 2) {
+            $chunk = fread($fp, 8192);
+            if ($chunk) {
+                $data .= $chunk;
+            }
+            if (strpos($data, '"software_update"') !== false) {
+                break;
+            }
+        }
+        fclose($fp);
+
+        if (preg_match('/"text"\s*:\s*"System"\s*,\s*"version"\s*:\s*"([^"]+)"/', $data, $m)) {
+            $this->SetValue('SoftwareVersion', $m[1]);
+        }
+        if (preg_match('/"remote_version_available"\s*:\s*(true|false)/', $data, $m)) {
+            $available = ($m[1] === 'true');
+            $this->SetValue('SoftwareUpdateAvailable', $available);
         }
     }
 
