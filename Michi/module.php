@@ -62,7 +62,6 @@ class Michi extends IPSModuleStrict
         ], 60);
 
         $this->DA_RegisterAvailability(900);
-        $this->DR_Register('DevicesGenericSensor');
     }
 
     public function Destroy(): void
@@ -78,6 +77,7 @@ class Michi extends IPSModuleStrict
         if (empty($this->ReadPropertyString('Host'))) {
             $this->SetStatus(104);
             return;
+        $this->DR_Register('DevicesGenericSensor');
         }
 
         // Timer setzen

@@ -135,8 +135,6 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
-
-        $this->DR_Register('DevicesGenericSensor');
     }
 
     public function Destroy(): void
@@ -153,6 +151,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ($parentId > 0) {
             $this->RegisterMessage($parentId, 10505 /* IM_CHANGESTATUS */);
+        $this->DR_Register('DevicesGenericSensor');
         }
 
         // Regelmäßiges Polling (alle 30 Sekunden) als Fallback

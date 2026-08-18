@@ -25,8 +25,6 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         // Zentraler Shot-Timer für alle Playbacks (ausschließlich in Create registrieren!)
         $this->RegisterTimer('ShotTimer', 0, 'CQQ_ShotTimerTick($_IPS[\'TARGET\']);');
-
-        $this->DR_Register('DevicesGenericSensor');
     }
 
     public function Destroy(): void
@@ -117,6 +115,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     ])
                 ], $basePos + 4);
                 $this->EnableAction($identFlash);
+        $this->DR_Register('DevicesGenericSensor');
             }
         }
 

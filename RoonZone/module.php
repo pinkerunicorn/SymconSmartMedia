@@ -57,7 +57,6 @@ class RoonZone extends IPSModuleStrict
 
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
-        $this->DR_Register('DevicesGenericSensor');
     }
 
     public function Destroy(): void
@@ -75,6 +74,7 @@ class RoonZone extends IPSModuleStrict
         if (empty($zone)) {
             $this->SetStatus(104); // IS_INACTIVE
             return;
+        $this->DR_Register('DevicesGenericSensor');
         }
         $this->SetStatus(102); // IS_ACTIVE
 
