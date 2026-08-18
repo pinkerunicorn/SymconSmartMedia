@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
+require_once __DIR__ . '/../libs/Trait_DeviceRegistration.php';
 class RoonZone extends IPSModuleStrict
 {
+    use DeviceRegistration_Trait;
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
     private const TRANSPORT_COMMANDS = [
@@ -83,6 +85,10 @@ class RoonZone extends IPSModuleStrict
         IPS_SetVariableCustomProfile($this->GetIDForIdent('State'), '');
 
         $this->DA_ApplyPresentation();
+    
+        $this->DR_Register('DevicesGenericSensor', [
+            'Reachable_VarID' => $this->GetIDForIdent('DeviceAvailable'),
+        ]);
     }
 
     public function ReceiveData(string $JSONString): string

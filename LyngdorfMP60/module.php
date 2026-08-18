@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
+require_once __DIR__ . '/../libs/Trait_DeviceRegistration.php';
 class LyngdorfMP60 extends IPSModuleStrict
 {
+    use DeviceRegistration_Trait;
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
     public function Create(): void
@@ -163,6 +165,10 @@ class LyngdorfMP60 extends IPSModuleStrict
         if (IPS_VariableProfileExists('LyngdorfMP60.ZoneBVolume')) {
             IPS_SetVariableProfileValues('LyngdorfMP60.ZoneBVolume', -99.9, 24.0, 0.5);
         }
+    
+        $this->DR_Register('DevicesGenericSensor', [
+            'Reachable_VarID' => $this->GetIDForIdent('DeviceAvailable'),
+        ]);
     }
 
     private function RestoreDynamicPresentation(string $ident, string $varName, int $position, string $mapName, string $icon): void
