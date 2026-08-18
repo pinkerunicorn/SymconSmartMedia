@@ -342,6 +342,7 @@ class LyngdorfMP60 extends IPSModuleStrict
             $this->Log('Prüfe auf Firmware Update...');
             // Da das Update-Kommando nicht dokumentiert ist, versuchen wir einige gängige Befehle
             $this->SendCommand('!SWVER?');
+            $this->SendCommand('!DEVICE?');
             $this->SendCommand('!UPDATE?');
             $this->SendCommand('!SWUPDATE?');
             $this->SendCommand('!SYSINFO?');
@@ -357,6 +358,7 @@ class LyngdorfMP60 extends IPSModuleStrict
         $command = substr($packet, 1);
 
         $this->SendDebug('Receive', $command, 0);
+        $this->Log('DEBUG RX: ' . $command);
 
         if (preg_match('/^POWER\((\d)\)$/', $command, $matches)) {
             $power = ($matches[1] == '1');
