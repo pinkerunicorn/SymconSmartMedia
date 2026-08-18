@@ -114,6 +114,7 @@ class SonyBeamer extends IPSModuleStrict
     public function ApplyChanges(): void{
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
+        $this->DR_Register('DevicesGenericSensor');
 
         if (empty($this->ReadPropertyString('Host'))) {
             $this->SetStatus(104);
@@ -135,9 +136,6 @@ class SonyBeamer extends IPSModuleStrict
         $this->UpdateVisibility(!$this->GetValue('Power'));
 
     
-        $this->DR_Register('DevicesGenericSensor', [
-            'Reachable_VarID' => $this->GetIDForIdent('DeviceAvailable'),
-        ]);
     }
 
 

@@ -141,6 +141,7 @@ class LyngdorfMP60 extends IPSModuleStrict
     {
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
+        $this->DR_Register('DevicesGenericSensor');
 
         $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ($parentId > 0) {
@@ -166,9 +167,6 @@ class LyngdorfMP60 extends IPSModuleStrict
             IPS_SetVariableProfileValues('LyngdorfMP60.ZoneBVolume', -99.9, 24.0, 0.5);
         }
     
-        $this->DR_Register('DevicesGenericSensor', [
-            'Reachable_VarID' => $this->GetIDForIdent('DeviceAvailable'),
-        ]);
     }
 
     private function RestoreDynamicPresentation(string $ident, string $varName, int $position, string $mapName, string $icon): void

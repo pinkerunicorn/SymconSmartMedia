@@ -43,6 +43,7 @@ class ChamSysQuickQ extends IPSModuleStrict
     {
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
+        $this->DR_Register('DevicesGenericSensor');
 
         // Playbacks dynamisch anlegen
         $playbacks = json_decode($this->ReadPropertyString('Playbacks'), true);
@@ -164,9 +165,6 @@ class ChamSysQuickQ extends IPSModuleStrict
             $this->RequestFeedback();
         }
     
-        $this->DR_Register('DevicesGenericSensor', [
-            'Reachable_VarID' => $this->GetIDForIdent('DeviceAvailable'),
-        ]);
     }
 
     public function RequestAction(string $Ident, mixed $Value): void

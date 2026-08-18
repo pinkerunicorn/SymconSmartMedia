@@ -85,10 +85,8 @@ class RoonZone extends IPSModuleStrict
         IPS_SetVariableCustomProfile($this->GetIDForIdent('State'), '');
 
         $this->DA_ApplyPresentation();
+        $this->DR_Register('DevicesGenericSensor');
     
-        $this->DR_Register('DevicesGenericSensor', [
-            'Reachable_VarID' => $this->GetIDForIdent('DeviceAvailable'),
-        ]);
     }
 
     public function ReceiveData(string $JSONString): string

@@ -67,6 +67,7 @@ class Michi extends IPSModuleStrict
     public function ApplyChanges(): void{
         parent::ApplyChanges();
         $this->DA_ApplyPresentation();
+        $this->DR_Register('DevicesGenericSensor');
 
         if (empty($this->ReadPropertyString('Host'))) {
             $this->SetStatus(104);
@@ -85,9 +86,6 @@ class Michi extends IPSModuleStrict
         $this->UpdatePowerState($this->GetValue('Power'));
 
     
-        $this->DR_Register('DevicesGenericSensor', [
-            'Reachable_VarID' => $this->GetIDForIdent('DeviceAvailable'),
-        ]);
     }
 
     public function RequestAction(string $Ident, mixed $Value): void{
