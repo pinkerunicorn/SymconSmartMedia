@@ -96,7 +96,40 @@ class LyngdorfMP60 extends IPSModuleStrict
         ], 53);
         $this->EnableAction('ZoneBSource');
 
+        $this->RegisterVariableString('SoftwareVersion', 'Software Version', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 9);
+        $this->RegisterVariableBoolean('SoftwareUpdateAvailable', 'Update verfügbar', [
+            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'ICON' => 'Download',
+            'OPTIONS' => json_encode([
+                [
+                    'Value' => false, 
+                    'Caption' => 'Nein', 
+                    'IconActive' => true, 
+                    'IconValue' => 'Check', 
+                    'ColorActive' => true, 
+                    'ColorDisplay' => 0x00CC00, 
+                    'ColorValue' => 0x00CC00,
+                    'ContentColorActive' => false, 
+                    'ContentColorDisplay' => -1, 
+                    'ContentColorValue' => -1
+                ],
+                [
+                    'Value' => true, 
+                    'Caption' => 'Ja', 
+                    'IconActive' => true, 
+                    'IconValue' => 'Download', 
+                    'ColorActive' => true, 
+                    'ColorDisplay' => 0xFF0000, 
+                    'ColorValue' => 0xFF0000,
+                    'ContentColorActive' => false, 
+                    'ContentColorDisplay' => -1, 
+                    'ContentColorValue' => -1
+                ]
+            ])
+        ], 10);
+
         $this->RegisterTimer('UpdatePolling', 0, 'LYNG_UpdateData($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('FirmwareUpdateCheck', 0, 'LYNG_CheckFirmwareUpdate($_IPS[\'TARGET\']);');
 
         $this->DA_RegisterAvailability(900);
         $this->DA_RegisterWatchdog();
@@ -114,6 +147,9 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         // Regelmäßiges Polling (alle 30 Sekunden) als Fallback
         $this->SetTimerInterval('UpdatePolling', 30000);
+
+        // Einmal täglich nach Updates prüfen (86400000 ms)
+        $this->SetTimerInterval('FirmwareUpdateCheck', 86400000);
 
         $this->RestoreDynamicPresentation('Source', '🎵 Quelle', 4, 'SourceMap', 'TV');
         $this->RestoreDynamicPresentation('AudioMode', '🎛 Audio Mode', 5, 'AudioModeMap', 'Sound');
@@ -279,6 +315,7 @@ class LyngdorfMP60 extends IPSModuleStrict
     {
         if ($this->HasActiveParent()) {
             $this->SendCommand('!VERB(1)');
+            $this->SendCommand('!SWVER?');
             $this->SendCommand('!POWER?');
             $this->SendCommand('!VOL?');
             $this->SendCommand('!MUTE?');
@@ -296,6 +333,18 @@ class LyngdorfMP60 extends IPSModuleStrict
             $this->SendCommand('!ZMUTE?');
             $this->SendCommand('!ZSRCS?');
             $this->SendCommand('!ZSRC?');
+        }
+    }
+
+    public function CheckFirmwareUpdate(): void
+    {
+        if ($this->HasActiveParent()) {
+            $this->Log('Prüfe auf Firmware Update...');
+            // Da das Update-Kommando nicht dokumentiert ist, versuchen wir einige gängige Befehle
+            $this->SendCommand('!SWVER?');
+            $this->SendCommand('!UPDATE?');
+            $this->SendCommand('!SWUPDATE?');
+            $this->SendCommand('!SYSINFO?');
         }
     }
 
@@ -413,6 +462,18 @@ class LyngdorfMP60 extends IPSModuleStrict
         }
         elseif (preg_match('/^ZSRC\((\d+)\)$/', $command, $matches)) {
             $this->SetValue('ZoneBSource', intval($matches[1]));
+        }
+        elseif (preg_match('/^(?:SW)?VER\((.*)\)$/i', $command, $matches)) {
+            $version = trim($matches[1], '"');
+            if ($this->GetValue('SoftwareVersion') !== $version) {
+                $this->Log('Software Version erkannt: ' . $version);
+            }
+            $this->SetValue('SoftwareVersion', $version);
+        }
+        elseif (preg_match('/^(?:SW)?UPDATE\((.*)\)$/i', $command, $matches)) {
+            $val = strtolower(trim($matches[1], '"'));
+            $isUpdate = ($val === '1' || $val === 'true' || $val === 'yes' || $val === 'available');
+            $this->SetValue('SoftwareUpdateAvailable', $isUpdate);
         }
     }
 
@@ -545,6 +606,11 @@ class LyngdorfMP60 extends IPSModuleStrict
             "type": "Button",
             "label": "Werte manuell vom Receiver aktualisieren",
             "onClick": "LYNG_UpdateData($id);"
+        },
+        {
+            "type": "Button",
+            "label": "Manuell auf Updates prüfen",
+            "onClick": "LYNG_CheckFirmwareUpdate($id);"
         },
         {
             "type": "Button",
