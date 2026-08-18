@@ -96,6 +96,12 @@ class RoonZone extends IPSModuleStrict
 
     public function ReceiveData(string $JSONString): string
     {
+        $hash = md5($JSONString);
+        if ($this->GetBuffer('LastPayloadHash') === $hash) {
+            return "OK";
+        }
+        $this->SetBuffer('LastPayloadHash', $hash);
+
         $this->DA_SetAvailable(true);
         $this->DA_ResetWatchdog(300);
         try {
@@ -117,23 +123,23 @@ class RoonZone extends IPSModuleStrict
 
             // Titel
             if ($topic === 'roon/' . $topicZone . '/now_playing/three_line/line1') {
-                $this->SetValue('Title', $payload);
+                $this->SetValueIfChanged('Title', $payload);
             }
             // Künstler
             elseif ($topic === 'roon/' . $topicZone . '/now_playing/three_line/line2') {
-                $this->SetValue('Artist', $payload);
+                $this->SetValueIfChanged('Artist', $payload);
             }
             // Album
             elseif ($topic === 'roon/' . $topicZone . '/now_playing/three_line/line3') {
-                $this->SetValue('Album', $payload);
+                $this->SetValueIfChanged('Album', $payload);
             }
             // Status
             elseif ($topic === 'roon/' . $topicZone . '/state') {
                 switch (strtolower($payload)) {
-                    case 'stopped':  $this->SetValue('State', 1); break;
-                    case 'playing':  $this->SetValue('State', 2); break;
-                    case 'paused':   $this->SetValue('State', 3); break;
-                    case 'loading':  $this->SetValue('State', 1); break;
+                    case 'stopped':  $this->SetValueIfChanged('State', 1); break;
+                    case 'playing':  $this->SetValueIfChanged('State', 2); break;
+                    case 'paused':   $this->SetValueIfChanged('State', 3); break;
+                    case 'loading':  $this->SetValueIfChanged('State', 1); break;
                 }
             }
 
@@ -145,7 +151,7 @@ class RoonZone extends IPSModuleStrict
                 // Konvertiere dB (-60 bis 0) in % (0 bis 100)
                 $db      = max(-60, min(0, (int) $payload));
                 $percent = (int) round(($db + 60) * 100 / 60);
-                $this->SetValue('Volume', $percent);
+                $this->SetValueIfChanged('Volume', $percent);
             }
 
             return 'OK';
@@ -259,5 +265,15 @@ class RoonZone extends IPSModuleStrict
     ]
 }
 EOT;
+    }
+
+
+    protected function SetValueIfChanged(string $ident, mixed $value): bool
+    {
+        if ($this->GetValue($ident) !== $value) {
+            $this->SetValue($ident, $value);
+            return true;
+        }
+        return false;
     }
 }

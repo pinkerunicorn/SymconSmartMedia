@@ -183,20 +183,20 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Fader: Sofort setzen
         if (str_starts_with($Ident, 'PB_Fader_')) {
             $id = (int)str_replace('PB_Fader_', '', $Ident);
-            $this->SetValue($Ident, $Value);
+            $this->SetValue($ident, $value);
             $this->SendOSCFloat("/pb/{$id}", max(0.0, min(1.0, (float)$Value / 100.0)));
             return;
         }
 
         // Effektwert: Nur Wert speichern
         if (str_starts_with($Ident, 'PB_Effect_')) {
-            $this->SetValue($Ident, $Value);
+            $this->SetValue($ident, $value);
             return;
         }
 
         // Haltezeit: Nur Wert speichern
         if (str_starts_with($Ident, 'PB_HoldTime_')) {
-            $this->SetValue($Ident, $Value);
+            $this->SetValue($ident, $value);
             return;
         }
 
@@ -217,7 +217,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Head Intensity
         if (str_starts_with($Ident, 'Head_Intensity_')) {
             $id = (int)str_replace('Head_Intensity_', '', $Ident);
-            $this->SetValue($Ident, $Value);
+            $this->SetValue($ident, $value);
             $this->SendOSCFloat("/head/{$id}/intensity", max(0.0, min(1.0, (float)$Value / 100.0)));
             return;
         }
@@ -234,7 +234,7 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         // Sofort auf Effektwert setzen
         $this->SendOSCFloat("/pb/{$pbId}", max(0.0, min(1.0, $effectValue / 100.0)));
-        $this->SetValue('PB_Fader_' . $pbId, $effectValue);
+        $this->SetValueIfChanged('PB_Fader_' . $pbId, $effectValue);
         $this->SendDebug('Shot', "PB {$pbId}: ON bei {$effectValue}% (Haltezeit: {$holdTime}s)", 0);
 
         if ($holdTime <= 0) {
@@ -272,7 +272,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                 // Playback auf 0% zurücksetzen
                 $this->SendOSCFloat("/pb/{$pbId}", 0.0);
                 if (@$this->GetIDForIdent('PB_Fader_' . $pbId)) {
-                    $this->SetValue('PB_Fader_' . $pbId, 0.0);
+                    $this->SetValueIfChanged('PB_Fader_' . $pbId, 0.0);
                 }
                 $this->SendDebug('Shot', "PB {$pbId}: OFF (Haltezeit abgelaufen)", 0);
             } else {
@@ -301,7 +301,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Playback auf 0% zurücksetzen
         $this->SendOSCFloat("/pb/{$pbId}", 0.0);
         if (@$this->GetIDForIdent('PB_Fader_' . $pbId)) {
-            $this->SetValue('PB_Fader_' . $pbId, 0.0);
+            $this->SetValueIfChanged('PB_Fader_' . $pbId, 0.0);
         }
         $this->SendDebug('Shot', "PB {$pbId}: OFF (manuell beendet)", 0);
     }
@@ -330,8 +330,8 @@ class ChamSysQuickQ extends IPSModuleStrict
 
     public function ShotPlayback(int $pbNumber, float $effectPercent, float $holdTimeSec): void
     {
-        $this->SetValue('PB_Effect_' . $pbNumber, $effectPercent);
-        $this->SetValue('PB_HoldTime_' . $pbNumber, $holdTimeSec);
+        $this->SetValueIfChanged('PB_Effect_' . $pbNumber, $effectPercent);
+        $this->SetValueIfChanged('PB_HoldTime_' . $pbNumber, $holdTimeSec);
         $this->StartShot($pbNumber);
     }
 
@@ -347,6 +347,12 @@ class ChamSysQuickQ extends IPSModuleStrict
 
     public function ReceiveData(string $JSONString): string
     {
+        $hash = md5($JSONString);
+        if ($this->GetBuffer('LastPayloadHash') === $hash) {
+            return "OK";
+        }
+        $this->SetBuffer('LastPayloadHash', $hash);
+
         $this->DA_SetAvailable(true);
         $this->DA_ResetWatchdog(300);
 
@@ -382,7 +388,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     $percent = ($valFloat <= 1.0 && $valFloat >= 0.0) ? round($valFloat * 100.0, 1) : $valFloat;
                     $currentVal = (float)$this->GetValue($ident);
                     if (abs($currentVal - $percent) >= 0.1) {
-                        $this->SetValue($ident, $percent);
+                        $this->SetValueIfChanged($ident, $percent);
                         $this->SendDebug('Feedback Update', "Fader PB {$pbId} aktualisiert auf {$percent}%", 0);
                     }
                 }
@@ -400,7 +406,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     $percent = ($valFloat <= 1.0 && $valFloat >= 0.0) ? round($valFloat * 100.0, 1) : $valFloat;
                     $currentVal = (float)$this->GetValue($ident);
                     if (abs($currentVal - $percent) >= 0.1) {
-                        $this->SetValue($ident, $percent);
+                        $this->SetValueIfChanged($ident, $percent);
                         $this->SendDebug('Feedback Update', "Head {$headId} aktualisiert auf {$percent}%", 0);
                     }
                 }
@@ -529,4 +535,14 @@ class ChamSysQuickQ extends IPSModuleStrict
         }
     }
 
+
+
+    protected function SetValueIfChanged(string $ident, mixed $value): bool
+    {
+        if ($this->GetValue($ident) !== $value) {
+            $this->SetValue($ident, $value);
+            return true;
+        }
+        return false;
+    }
 }

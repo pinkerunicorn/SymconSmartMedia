@@ -293,6 +293,12 @@ class LyngdorfMP60 extends IPSModuleStrict
 
     public function ReceiveData(string $JSONString): string
     {
+        $hash = md5($JSONString);
+        if ($this->GetBuffer('LastPayloadHash') === $hash) {
+            return "OK";
+        }
+        $this->SetBuffer('LastPayloadHash', $hash);
+
         $this->DA_SetAvailable(true);
         $this->DA_ResetWatchdog(300);
         $data = json_decode($JSONString);
@@ -407,11 +413,11 @@ class LyngdorfMP60 extends IPSModuleStrict
         fclose($fp);
 
         if (preg_match('/"text"\s*:\s*"System"\s*,\s*"version"\s*:\s*"([^"]+)"/', $data, $m)) {
-            $this->SetValue('SoftwareVersion', $m[1]);
+            $this->SetValueIfChanged('SoftwareVersion', $m[1]);
         }
         if (preg_match('/"remote_version_available"\s*:\s*(true|false)/', $data, $m)) {
             $available = ($m[1] === 'true');
-            $this->SetValue('SoftwareUpdateAvailable', $available);
+            $this->SetValueIfChanged('SoftwareUpdateAvailable', $available);
         }
     }
 
@@ -455,64 +461,64 @@ class LyngdorfMP60 extends IPSModuleStrict
             if ($this->GetValue('Power') !== $power) {
                 $this->Log('Status geändert: Power = '. ($power ? 'ON': 'OFF'));
             }
-            $this->SetValue('Power', (bool)$power);
+            $this->SetValueIfChanged('Power', (bool)$power);
             $this->UpdateVisibility($power);
         } 
         elseif ($command === 'POWERONMAIN'|| $command === 'PON'|| $command === 'POWERON') {
             if (!$this->GetValue('Power')) {
                 $this->Log('Status geändert: Power = ON');
             }
-            $this->SetValue('Power', true);
+            $this->SetValueIfChanged('Power', true);
             $this->UpdateVisibility(true);
         }
         elseif ($command === 'POWEROFFMAIN'|| $command === 'POFF'|| $command === 'POWEROFF') {
             if ($this->GetValue('Power')) {
                 $this->Log('Status geändert: Power = OFF');
             }
-            $this->SetValue('Power', false);
+            $this->SetValueIfChanged('Power', false);
             $this->UpdateVisibility(false);
         }
         elseif (preg_match('/^VOL\((-?\d+)\)$/', $command, $matches)) {
-            $this->SetValue('Volume', floatval($matches[1]) / 10);
+            $this->SetValueIfChanged('Volume', floatval($matches[1]) / 10);
         }
         elseif ($command === 'MUTEON') {
-            $this->SetValue('Mute', true);
+            $this->SetValueIfChanged('Mute', true);
         }
         elseif ($command === 'MUTEOFF') {
-            $this->SetValue('Mute', false);
+            $this->SetValueIfChanged('Mute', false);
         }
         elseif (preg_match('/^SRC\((\d+)\)"(.*)"$/', $command, $matches)) {
             $index = intval($matches[1]);
             $name = $matches[2];
             $this->UpdateDynamicProfile('Source', '🎵 Quelle', 4, 'SourceMap', $index, $name, 'TV');
-            $this->SetValue('Source', $index);
+            $this->SetValueIfChanged('Source', $index);
         }
         elseif (preg_match('/^SRC\((\d+)\)$/', $command, $matches)) {
-            $this->SetValue('Source', intval($matches[1]));
+            $this->SetValueIfChanged('Source', intval($matches[1]));
         }
         elseif (preg_match('/^AUDMODE\((\d+)\)"(.*)"$/', $command, $matches)) {
             $index = intval($matches[1]);
             $name = $matches[2];
             $this->UpdateDynamicProfile('AudioMode', '🎛 Audio Mode', 5, 'AudioModeMap', $index, $name, 'Sound');
-            $this->SetValue('AudioMode', $index);
+            $this->SetValueIfChanged('AudioMode', $index);
         }
         elseif (preg_match('/^AUDMODE\((\d+)\)$/', $command, $matches)) {
-            $this->SetValue('AudioMode', intval($matches[1]));
+            $this->SetValueIfChanged('AudioMode', intval($matches[1]));
         }
         elseif (preg_match('/^RPVOI\((\d+)\)"(.*)"$/', $command, $matches)) {
             $index = intval($matches[1]);
             $name = $matches[2];
             $this->UpdateDynamicProfile('Voicing', '🗣 Voicing', 6, 'VoicingMap', $index, $name, 'Speaker');
-            $this->SetValue('Voicing', $index);
+            $this->SetValueIfChanged('Voicing', $index);
         }
         elseif (preg_match('/^RPVOI\((\d+)\)$/', $command, $matches)) {
-            $this->SetValue('Voicing', intval($matches[1]));
+            $this->SetValueIfChanged('Voicing', intval($matches[1]));
         }
         elseif (preg_match('/^AUDTYPE\((.*)\)$/', $command, $matches)) {
-            $this->SetValue('AudioTypeIn', $matches[1]);
+            $this->SetValueIfChanged('AudioTypeIn', $matches[1]);
         }
         elseif (preg_match('/^AUDTYPEOUT\((.*)\)$/', $command, $matches)) {
-            $this->SetValue('AudioTypeOut', $matches[1]);
+            $this->SetValueIfChanged('AudioTypeOut', $matches[1]);
         }
         // Zone B Responses
         elseif (preg_match('/^POWERZONE2\((\d)\)$/', $command, $matches)) {
@@ -520,52 +526,52 @@ class LyngdorfMP60 extends IPSModuleStrict
             if ($this->GetValue('ZoneBPower') !== $power) {
                 $this->Log('Zone B Power = ' . ($power ? 'ON' : 'OFF'));
             }
-            $this->SetValue('ZoneBPower', $power);
+            $this->SetValueIfChanged('ZoneBPower', $power);
             $this->UpdateZoneBVisibility($power);
         }
         elseif ($command === 'POWERONZONE2') {
             if (!$this->GetValue('ZoneBPower')) {
                 $this->Log('Zone B Power = ON');
             }
-            $this->SetValue('ZoneBPower', true);
+            $this->SetValueIfChanged('ZoneBPower', true);
             $this->UpdateZoneBVisibility(true);
         }
         elseif ($command === 'POWEROFFZONE2') {
             if ($this->GetValue('ZoneBPower')) {
                 $this->Log('Zone B Power = OFF');
             }
-            $this->SetValue('ZoneBPower', false);
+            $this->SetValueIfChanged('ZoneBPower', false);
             $this->UpdateZoneBVisibility(false);
         }
         elseif (preg_match('/^ZVOL\((-?\d+)\)$/', $command, $matches)) {
-            $this->SetValue('ZoneBVolume', floatval($matches[1]) / 10);
+            $this->SetValueIfChanged('ZoneBVolume', floatval($matches[1]) / 10);
         }
         elseif ($command === 'ZMUTEON') {
-            $this->SetValue('ZoneBMute', true);
+            $this->SetValueIfChanged('ZoneBMute', true);
         }
         elseif ($command === 'ZMUTEOFF') {
-            $this->SetValue('ZoneBMute', false);
+            $this->SetValueIfChanged('ZoneBMute', false);
         }
         elseif (preg_match('/^ZSRC\((\d+)\)"(.*)"$/', $command, $matches)) {
             $index = intval($matches[1]);
             $name = $matches[2];
             $this->UpdateDynamicProfile('ZoneBSource', 'Zone B Quelle', 53, 'ZoneSourceMap', $index, $name, 'TV');
-            $this->SetValue('ZoneBSource', $index);
+            $this->SetValueIfChanged('ZoneBSource', $index);
         }
         elseif (preg_match('/^ZSRC\((\d+)\)$/', $command, $matches)) {
-            $this->SetValue('ZoneBSource', intval($matches[1]));
+            $this->SetValueIfChanged('ZoneBSource', intval($matches[1]));
         }
         elseif (preg_match('/^(?:SW)?VER\((.*)\)$/i', $command, $matches)) {
             $version = trim($matches[1], '"');
             if ($this->GetValue('SoftwareVersion') !== $version) {
                 $this->Log('Software Version erkannt: ' . $version);
             }
-            $this->SetValue('SoftwareVersion', $version);
+            $this->SetValueIfChanged('SoftwareVersion', $version);
         }
         elseif (preg_match('/^(?:SW)?UPDATE\((.*)\)$/i', $command, $matches)) {
             $val = strtolower(trim($matches[1], '"'));
             $isUpdate = ($val === '1' || $val === 'true' || $val === 'yes' || $val === 'available');
-            $this->SetValue('SoftwareUpdateAvailable', $isUpdate);
+            $this->SetValueIfChanged('SoftwareUpdateAvailable', $isUpdate);
         }
     }
 
@@ -720,6 +726,16 @@ class LyngdorfMP60 extends IPSModuleStrict
     ]
 }
 EOT;
+    }
+
+
+    protected function SetValueIfChanged(string $ident, mixed $value): bool
+    {
+        if ($this->GetValue($ident) !== $value) {
+            $this->SetValue($ident, $value);
+            return true;
+        }
+        return false;
     }
 }
 
