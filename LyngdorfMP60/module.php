@@ -366,8 +366,21 @@ class LyngdorfMP60 extends IPSModuleStrict
 
         stream_set_timeout($fp, 2);
         $key = base64_encode(random_bytes(16));
-        $req = "GET / HTTP/1.1\r\nHost: $host:80\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: $key\r\nSec-WebSocket-Version: 13\r\n\r\n";
+        $req = "GET / HTTP/1.1\r\n" .
+               "Host: $host\r\n" .
+               "Upgrade: websocket\r\n" .
+               "Connection: Upgrade\r\n" .
+               "Sec-WebSocket-Key: $key\r\n" .
+               "Sec-WebSocket-Version: 13\r\n" .
+               "Origin: http://$host\r\n" .
+               "Sec-WebSocket-Protocol: control\r\n\r\n";
+        
         fwrite($fp, $req);
+        $response = fread($fp, 1024);
+        if (strpos($response, '101 Switching Protocols') === false) {
+            fclose($fp);
+            return;
+        }
 
         $data = '';
         $t = microtime(true);
@@ -390,6 +403,31 @@ class LyngdorfMP60 extends IPSModuleStrict
             $available = ($m[1] === 'true');
             $this->SetValue('SoftwareUpdateAvailable', $available);
         }
+    }
+
+    private function SendWebSocketTextFrame($fp, string $payload): void
+    {
+        $b1 = 0x81; // FIN + Text Frame
+        $len = strlen($payload);
+        $maskKey = random_bytes(4);
+        
+        $header = chr($b1);
+        if ($len <= 125) {
+            $header .= chr($len | 0x80); // Mask bit set
+        } elseif ($len <= 65535) {
+            $header .= chr(126 | 0x80) . pack('n', $len);
+        } else {
+            $header .= chr(127 | 0x80) . pack('J', $len);
+        }
+        
+        $header .= $maskKey;
+        
+        $maskedPayload = '';
+        for ($i = 0; $i < $len; $i++) {
+            $maskedPayload .= $payload[$i] ^ $maskKey[$i % 4];
+        }
+        
+        fwrite($fp, $header . $maskedPayload);
     }
 
     private function ProcessPacket(string $packet): void
