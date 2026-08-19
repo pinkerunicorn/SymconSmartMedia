@@ -27,8 +27,12 @@ class RoonZone extends IPSModuleStrict
 
         // Variablen registrieren
         // Legacy Profil explizit entfernen
-        $this->RegisterVariableInteger('State', 'Status', '', 1);
         $this->RegisterVariableInteger('State', 'Status', [
+            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'ICON' => 'circle-play'
+        ], 1);
+        $this->RegisterVariableInteger('State', 'Status', [
+            'ICON' => 'circle-play',
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
             'ICON'         => 'info',
             'OPTIONS'      => json_encode([

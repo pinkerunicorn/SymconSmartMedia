@@ -98,10 +98,10 @@ class LyngdorfMP60 extends IPSModuleStrict
         ], 53);
         $this->EnableAction('ZoneBSource');
 
-        $this->RegisterVariableString('SoftwareVersion', 'Software Version', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Information'], 9);
+        $this->RegisterVariableString('SoftwareVersion', 'Software Version', ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'circle-info'], 9);
         $this->RegisterVariableBoolean('SoftwareUpdateAvailable', 'Update verfügbar', [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'ICON' => 'Download',
+            'ICON' => 'download',
             'OPTIONS' => json_encode([
                 [
                     'Value' => false, 
