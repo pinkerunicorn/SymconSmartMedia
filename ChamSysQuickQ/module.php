@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
-require_once __DIR__ . '/../libs/Trait_DeviceRegistration.php';
-
 class ChamSysQuickQ extends IPSModuleStrict
 {
-    use DeviceRegistration_Trait;
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
 
@@ -30,8 +27,7 @@ class ChamSysQuickQ extends IPSModuleStrict
     public function Destroy(): void
     {
         parent::Destroy();
-        $this->DR_Unregister();
-    }
+        }
 
     public function GetCompatibleParents(): string
     {
@@ -115,8 +111,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     ])
                 ], $basePos + 4);
                 $this->EnableAction($identFlash);
-        $this->DR_Register('DevicesGenericSensor');
-            }
+        }
         }
 
         // Heads (Lampen) dynamisch anlegen

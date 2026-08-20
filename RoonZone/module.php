@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
-require_once __DIR__ . '/../libs/Trait_DeviceRegistration.php';
 class RoonZone extends IPSModuleStrict
 {
-    use DeviceRegistration_Trait;
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
     private const TRANSPORT_COMMANDS = [
@@ -66,8 +64,7 @@ class RoonZone extends IPSModuleStrict
     public function Destroy(): void
     {
         parent::Destroy();
-        $this->DR_Unregister();
-    }
+        }
 
     public function ApplyChanges(): void
     {
@@ -78,7 +75,6 @@ class RoonZone extends IPSModuleStrict
         if (empty($zone)) {
             $this->SetStatus(104); // IS_INACTIVE
             return;
-        $this->DR_Register('DevicesGenericSensor');
         }
         $this->SetStatus(102); // IS_ACTIVE
 

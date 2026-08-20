@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
-require_once __DIR__ . '/../libs/Trait_DeviceRegistration.php';
 class SonyBeamer extends IPSModuleStrict
 {
-    use DeviceRegistration_Trait;
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
 
@@ -114,8 +112,7 @@ class SonyBeamer extends IPSModuleStrict
     public function Destroy(): void
     {
         parent::Destroy();
-        $this->DR_Unregister();
-    }
+        }
 
     public function ApplyChanges(): void{
         parent::ApplyChanges();
@@ -124,7 +121,6 @@ class SonyBeamer extends IPSModuleStrict
         if (empty($this->ReadPropertyString('Host'))) {
             $this->SetStatus(104);
             return;
-        $this->DR_Register('DevicesGenericSensor');
         }
 
         $interval = $this->ReadPropertyInteger('UpdateInterval');

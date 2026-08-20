@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
-require_once __DIR__ . '/../libs/Trait_DeviceRegistration.php';
 class LyngdorfMP60 extends IPSModuleStrict
 {
-    use DeviceRegistration_Trait;
     use SmartLog_Trait;
     use DeviceAvailability_Trait;
     public function Create(): void
@@ -140,8 +138,7 @@ class LyngdorfMP60 extends IPSModuleStrict
     public function Destroy(): void
     {
         parent::Destroy();
-        $this->DR_Unregister();
-    }
+        }
 
     public function ApplyChanges(): void
     {
@@ -151,7 +148,6 @@ class LyngdorfMP60 extends IPSModuleStrict
         $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ($parentId > 0) {
             $this->RegisterMessage($parentId, 10505 /* IM_CHANGESTATUS */);
-        $this->DR_Register('DevicesGenericSensor');
         }
 
         // Regelmäßiges Polling (alle 30 Sekunden) als Fallback
