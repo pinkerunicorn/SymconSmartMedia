@@ -352,18 +352,29 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->DA_SetAvailable(true);
         $this->DA_ResetWatchdog(300);
 
+        $this->SendDebug('ReceiveData_Raw', $JSONString, 0);
+
         $data = json_decode($JSONString);
         if (!isset($data->Buffer)) {
             return "";
         }
 
-        $buffer = hex2bin($data->Buffer);
+        $rawBuffer = (string)$data->Buffer;
+
+        // Entweder Hex-kodiert (falls Parent Hex liefert) oder Binär/UTF-8
+        if (strlen($rawBuffer) % 2 === 0 && ctype_xdigit($rawBuffer)) {
+            $buffer = hex2bin($rawBuffer);
+        } else {
+            $buffer = mb_convert_encoding($rawBuffer, 'ISO-8859-1', 'UTF-8');
+        }
+
         if ($buffer === false || strlen($buffer) === 0) {
-            return "";
+            $buffer = $rawBuffer;
         }
 
         $parsed = $this->ParseOSCMessage($buffer);
         if ($parsed === null) {
+            $this->SendDebug('OSC_Parse_Fail', 'Konnte OSC-Nachricht nicht parsen (Länge: ' . strlen($buffer) . ')', 0);
             return "";
         }
 
