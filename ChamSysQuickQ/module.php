@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/Trait_SmartLog.php';
 require_once __DIR__ . '/../libs/Trait_DeviceAvailability.php';
+
 class ChamSysQuickQ extends IPSModuleStrict
 {
     use SmartLog_Trait;
@@ -22,12 +23,10 @@ class ChamSysQuickQ extends IPSModuleStrict
 
         // Zentraler Shot-Timer für alle Playbacks (ausschließlich in Create registrieren!)
         $this->RegisterTimer('ShotTimer', 0, 'CQQ_ShotTimerTick($_IPS[\'TARGET\']);');
-    }
 
-    public function Destroy(): void
-    {
-        parent::Destroy();
-        }
+        // Regelmäßiges Feedback-Abonnement (alle 30s erneuern)
+        $this->RegisterTimer('FeedbackRefresh', 30000, 'CQQ_RequestFeedback($_IPS[\'TARGET\']);');
+    }
 
     public function GetCompatibleParents(): string
     {
@@ -111,7 +110,7 @@ class ChamSysQuickQ extends IPSModuleStrict
                     ])
                 ], $basePos + 4);
                 $this->EnableAction($identFlash);
-        }
+            }
         }
 
         // Heads (Lampen) dynamisch anlegen
@@ -165,7 +164,6 @@ class ChamSysQuickQ extends IPSModuleStrict
         if ($this->HasActiveParent()) {
             $this->RequestFeedback();
         }
-    
     }
 
     public function RequestAction(string $Ident, mixed $Value): void
@@ -178,20 +176,20 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Fader: Sofort setzen
         if (str_starts_with($Ident, 'PB_Fader_')) {
             $id = (int)str_replace('PB_Fader_', '', $Ident);
-            $this->SetValue($ident, $value);
+            $this->SetValueIfChanged($Ident, (float)$Value);
             $this->SendOSCFloat("/pb/{$id}", max(0.0, min(1.0, (float)$Value / 100.0)));
             return;
         }
 
         // Effektwert: Nur Wert speichern
         if (str_starts_with($Ident, 'PB_Effect_')) {
-            $this->SetValue($ident, $value);
+            $this->SetValueIfChanged($Ident, (float)$Value);
             return;
         }
 
         // Haltezeit: Nur Wert speichern
         if (str_starts_with($Ident, 'PB_HoldTime_')) {
-            $this->SetValue($ident, $value);
+            $this->SetValueIfChanged($Ident, (float)$Value);
             return;
         }
 
@@ -212,7 +210,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         // Head Intensity
         if (str_starts_with($Ident, 'Head_Intensity_')) {
             $id = (int)str_replace('Head_Intensity_', '', $Ident);
-            $this->SetValue($ident, $value);
+            $this->SetValueIfChanged($Ident, (float)$Value);
             $this->SendOSCFloat("/head/{$id}/intensity", max(0.0, min(1.0, (float)$Value / 100.0)));
             return;
         }
@@ -332,22 +330,25 @@ class ChamSysQuickQ extends IPSModuleStrict
 
     public function RequestFeedback(): void
     {
+        if (!$this->HasActiveParent()) {
+            return;
+        }
+
         // Aktiviert das Senden von Statusänderungen (Fader, Tasten) am QuickQ
-        $this->SendOSCCommand('/feedback/pb+exec');
+        $this->SendOSCFloat('/feedback/pb', 1.0);
+        $this->SendOSCFloat('/feedback/pb+exec', 1.0);
+        $this->SendOSCInt('/feedback/pb', 1);
+        $this->SendOSCInt('/feedback/pb+exec', 1);
         $this->SendOSCCommand('/feedback/pb');
-        $this->SendDebug('OSC Feedback', 'Feedback-Stream angefordert (/feedback/pb)', 0);
+        $this->SendOSCCommand('/feedback/pb+exec');
+
+        $this->SendDebug('OSC Feedback', 'Feedback-Stream am QuickQ angefordert (/feedback/pb)', 0);
     }
 
     // --- Empfang und Dekodierung vom Pult (Bidirektional) ---
 
     public function ReceiveData(string $JSONString): string
     {
-        $hash = md5($JSONString);
-        if ($this->GetBuffer('LastPayloadHash') === $hash) {
-            return "OK";
-        }
-        $this->SetBuffer('LastPayloadHash', $hash);
-
         $this->DA_SetAvailable(true);
         $this->DA_ResetWatchdog(300);
 
@@ -372,7 +373,7 @@ class ChamSysQuickQ extends IPSModuleStrict
         $this->SendDebug('OSC Empfangen', $address . ' ' . json_encode($args), 0);
 
         // Feedback für Playback Fader (z.B. /pb/1, /pb/1/fader, /playback/1)
-        if (preg_match('#^/(?:pb|playback)/(\d+)(?:/fader)?$#i', $address, $matches)) {
+        if (preg_match('#^/(?:pb|playback)/(\d+)(?:/(?:fader|level|val))?$#i', $address, $matches)) {
             $pbId = (int)$matches[1];
             $ident = 'PB_Fader_' . $pbId;
             if (@$this->GetIDForIdent($ident)) {
@@ -515,6 +516,22 @@ class ChamSysQuickQ extends IPSModuleStrict
         }
     }
 
+    private function SendOSCInt(string $address, int $value): void
+    {
+        $buf = $address . "\0";
+        while (strlen($buf) % 4 !== 0) { $buf .= "\0"; }
+
+        $buf .= ",i\0\0";
+        $buf .= pack("N", $value);
+
+        if ($this->HasActiveParent()) {
+            $this->SendDataToParent(json_encode([
+                'DataID' => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}',
+                'Buffer' => bin2hex($buf)
+            ]));
+        }
+    }
+
     private function SendOSCCommand(string $address): void
     {
         $buf = $address . "\0";
@@ -529,8 +546,6 @@ class ChamSysQuickQ extends IPSModuleStrict
             ]));
         }
     }
-
-
 
     protected function SetValueIfChanged(string $ident, mixed $value): bool
     {
